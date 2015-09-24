@@ -11,7 +11,10 @@ class SWRC:
         "Journal Article": swrc_ns.Article,
         "Book Chapter": swrc_ns.InBook,
         "Technical Report": swrc_ns.TechnicalReport,
-        "Doctoral Thesis": swrc_ns.PhDThesis
+        "Doctoral Thesis": swrc_ns.PhDThesis,
+        "Conference Publication": swrc_ns.InProceedings,
+        "Working Paper": swrc_ns.TechnicalReport,
+        "Book": swrc_ns.Book
     }
 
     def __init__(self, uri):
@@ -20,7 +23,7 @@ class SWRC:
         self.out_ns = Namespace(uri)
         self.graph.namespace_manager.bind("rrucd", self.out_ns)
 
-    def add_paper(self, uri, type):
+    def add_paper(self, uri, type, name):
         paper_rdf = self.graph.resource(uri)
         if type in self.paper_types:
             paper_type = self.paper_types[type]
@@ -28,16 +31,19 @@ class SWRC:
             paper_type = self.swrc_ns.Publication
             print("Type '{0}' for paper {1} not in Journal Types".format(type, uri))
         paper_rdf.set(RDF.type, paper_type)
+        title = Literal(name, lang="en")
+        paper_rdf.set(self.swrc_ns.title, title)
         return paper_rdf
 
     def add_author(self, uri, name, author_of):
-        author_rdf = self.graph.resource(uri)
-        author_rdf.set(RDF.type, self.swrc_ns.AcademicStaff)
-        author_rdf.add(self.swrc_ns.publication, author_of)
-        # name_rdf = Literal(name, lang="en", datatype=XSD.string)
-        name_rdf = Literal(name, lang="en")
-        author_rdf.set(self.dbo_ns.birthName, name_rdf)
-        author_of.add(self.swrc_ns.author, author_rdf)
+        if(name != 'et al.'):
+            author_rdf = self.graph.resource(uri)
+            author_rdf.set(RDF.type, self.swrc_ns.AcademicStaff)
+            author_rdf.add(self.swrc_ns.publication, author_of)
+            # name_rdf = Literal(name, lang="en", datatype=XSD.string)
+            name_rdf = Literal(name, lang="en")
+            author_rdf.set(self.dbo_ns.birthName, name_rdf)
+            author_of.add(self.swrc_ns.contributor, author_rdf)
 
     def output(self, filename):
         output_filename = os.path.join('output', filename)
