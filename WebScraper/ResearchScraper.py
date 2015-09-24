@@ -45,12 +45,7 @@ if __name__ == '__main__':
     domain = 'http://researchrepository.ucd.ie'
     uri_to_use = domain + "/"
     swrc = SWRC(uri_to_use)
-    # collections = get_category_links("aspect_artifactbrowser_CommunityBrowser_div_comunity-browser", domain, domain)
-    # print("Collections Obtained: " + str(collections))
-    # for link in collections:
-    #     link = domain + link
     title = "http://researchrepository.ucd.ie/browse?type=title"
-    # title = get_title_link("aspect_artifactbrowser_CommunityViewer_list_community-browse", link, domain)
     papers = []
     while title is not None:
         papers = papers + get_category_links("aspect_artifactbrowser_ConfigurableBrowse_div_browse-by-title-results",
