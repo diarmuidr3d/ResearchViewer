@@ -7,7 +7,6 @@ __author__ = 'Diarmuid Ryan'
 
 def get_category_links(category_id, query_url, base_url):
     elements = run_query('//div[@id="' + category_id + '"]/ul/li/div/div/a/@href', query_url)
-    elements = [base_url + category_link for category_link in elements]
     elements = [elements[0], elements[1]] # Remove this line for full use
     return elements
 
@@ -49,6 +48,7 @@ if __name__ == '__main__':
     collections = get_category_links("aspect_artifactbrowser_CommunityBrowser_div_comunity-browser", domain, domain)
     print("Collections Obtained: " + str(collections))
     for link in collections:
+        link = domain + link
         title = get_title_link("aspect_artifactbrowser_CommunityViewer_list_community-browse", link, domain)
         papers = []
         while title is not None:
@@ -56,6 +56,6 @@ if __name__ == '__main__':
                                                  title, domain)
             title = get_next_page(title, link)
         for paper in papers:
+            paper = domain + paper
             add_paper_details(paper, domain)
     swrc.output('ucd_research.n3')
-# TODO: move uneccesary loops for adding base URLs from functions into main code to reduce the number of loops
