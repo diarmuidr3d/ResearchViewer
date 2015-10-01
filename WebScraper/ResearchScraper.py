@@ -1,3 +1,5 @@
+from multiprocessing.pool import Pool
+import itertools
 from lxml import html
 import requests
 from swrc import SWRC
@@ -5,7 +7,7 @@ from swrc import SWRC
 __author__ = 'Diarmuid Ryan'
 
 
-def get_category_links(category_id, query_url, base_url):
+def get_category_links(category_id, query_url):
     elements = run_query('//div[@id="' + category_id + '"]/ul/li/div/div/a/@href', query_url)
     return elements
 
@@ -29,13 +31,21 @@ def get_next_page(from_page, base_url):
         return None
 
 
-def add_paper_details(from_paper, base_url):
-    page = requests.get(from_paper)
+def get_page_info(url):
+    domainn = 'http://researchrepository.ucd.ie'
+    url = domainn + url
+    print(url)
+    page = requests.get(url)
     tree = html.fromstring(page.content)
-    type = tree.xpath('//span[text()="Type of material:"]/../span[text()!="Type of material:"]/text()')
-    title = tree.xpath('//div[@id="aspect_artifactbrowser_ItemViewer_div_item-view"]/div/h1/text()')
-    paper_rdf = swrc.add_paper(from_paper, type[0], title[0])
+    type = tree.xpath('//span[text()="Type of material:"]/../span[text()!="Type of material:"]/text()')[0]
+    title = tree.xpath('//div[@id="aspect_artifactbrowser_ItemViewer_div_item-view"]/div/h1/text()')[0]
     authors = tree.xpath('//span[text()="Author:"]/../span/a/text()')
+    return {"uri":url, "type":type, "title":title, "authors":authors}
+
+
+def add_paper_details(from_paper, type, title, authors, base_url, num):
+    print("{0}: {1} {2}".format(num,type,title))
+    paper_rdf = swrc.add_paper(from_paper, type, title)
     for author in authors:
         author_uri = base_url + "/author/" + author.replace(',', '').replace(' ', '')
         swrc.add_author(author_uri, author, paper_rdf)
@@ -48,17 +58,16 @@ if __name__ == '__main__':
     title = "http://researchrepository.ucd.ie/browse?type=title"
     papers = []
     while title is not None:
-        papers = papers + get_category_links("aspect_artifactbrowser_ConfigurableBrowse_div_browse-by-title-results",
-                                             title, domain)
+        papers = papers + get_category_links("aspect_artifactbrowser_ConfigurableBrowse_div_browse-by-title-results",title)
         print("Number of papers: {0}".format(len(papers)))
         title = get_next_page(title, uri_to_use)
-    print("Papers got")
-    i=0
-    for paper in papers:
-        paper = domain + paper
-        print("{0}".format(i))
-        add_paper_details(paper, domain)
+    print("Papers got, getting trees now")
+    p = Pool()
+    paper_trees = p.map(get_page_info, papers)
+    print("Trees got, adding data")
+    i = 0
+    for paper in paper_trees:
+        add_paper_details(paper["uri"], paper["type"], paper["title"], paper["authors"], domain, i)
         i += 1
-        if i == 20:
-            break
     swrc.output('ucd_research.n3')
+    swrc.get_authors()
