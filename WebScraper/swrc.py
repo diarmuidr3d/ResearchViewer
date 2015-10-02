@@ -1,5 +1,4 @@
-import os
-from rdflib import Graph, Namespace, RDF, Literal, XSD
+from rdflib import Graph, Namespace, RDF, Literal, URIRef
 
 __author__ = 'diarmuid'
 
@@ -14,14 +13,25 @@ class SWRC:
         "Doctoral Thesis": swrc_ns.PhDThesis,
         "Conference Publication": swrc_ns.InProceedings,
         "Working Paper": swrc_ns.TechnicalReport,
-        "Book": swrc_ns.Book
+        "Book": swrc_ns.Book,
+        "Contribution to Newspaper/Magazine": swrc_ns.Magazine
     }
+    authors=[]
 
-    def __init__(self, uri):
+    def __init__(self, uri, file=None):
         self.graph = Graph(identifier=uri)
+        if file is not None:
+            self.graph.load(file, format='n3')
         self.graph.namespace_manager.bind("swrc", self.swrc_ns)
         self.out_ns = Namespace(uri)
         self.graph.namespace_manager.bind("rrucd", self.out_ns)
+
+    def resource_in_graph(self, resource):
+        resource = URIRef(resource)
+        if (resource, None, None) in self.graph:
+            return True
+        else:
+            return False
 
     def add_paper(self, uri, type, name):
         paper_rdf = self.graph.resource(uri)
@@ -36,16 +46,30 @@ class SWRC:
         return paper_rdf
 
     def add_author(self, uri, name, author_of):
-        if(name != 'et al.'):
+        if name != 'et al.':
             author_rdf = self.graph.resource(uri)
-            author_rdf.set(RDF.type, self.swrc_ns.AcademicStaff)
+            if name not in self.authors:
+                author_rdf.set(RDF.type, self.swrc_ns.AcademicStaff)
+                # name_rdf = Literal(name, lang="en", datatype=XSD.string)
+                name_rdf = Literal(name, lang="en")
+                author_rdf.set(self.dbo_ns.birthName, name_rdf)
+                self.authors.append(name)
             author_rdf.add(self.swrc_ns.publication, author_of)
-            # name_rdf = Literal(name, lang="en", datatype=XSD.string)
-            name_rdf = Literal(name, lang="en")
-            author_rdf.set(self.dbo_ns.birthName, name_rdf)
             author_of.add(self.swrc_ns.contributor, author_rdf)
 
     def output(self, filename):
-        output_filename = os.path.join('output', filename)
-        output_file = open(output_filename, "wb")
+        output_file = open(filename, "wb")
         self.graph.serialize(destination=output_file, format='n3', auto_compact=True)
+
+    def get_authors(self):
+        result = self.graph.query(
+            """
+            PREFIX swrc: <http://swrc.ontoware.org/ontology#>
+            SELECT (COUNT(DISTINCT ?a) AS ?count)
+            WHERE { ?a rdf:type swrc:AcademicStaff }
+            """
+        )
+        for row in result:
+            print("Number of authors LD: {0}, #Array: ".format(row, len(self.authors)))
+        authors = sorted(self.authors, key=str.lower)
+        print(authors)

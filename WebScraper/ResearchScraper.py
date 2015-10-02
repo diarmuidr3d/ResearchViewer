@@ -1,5 +1,6 @@
 from multiprocessing.pool import Pool
 import itertools
+import os
 from lxml import html
 import requests
 from swrc import SWRC
@@ -35,12 +36,15 @@ def get_page_info(url):
     domainn = 'http://researchrepository.ucd.ie'
     url = domainn + url
     print(url)
-    page = requests.get(url)
-    tree = html.fromstring(page.content)
-    type = tree.xpath('//span[text()="Type of material:"]/../span[text()!="Type of material:"]/text()')[0]
-    title = tree.xpath('//div[@id="aspect_artifactbrowser_ItemViewer_div_item-view"]/div/h1/text()')[0]
-    authors = tree.xpath('//span[text()="Author:"]/../span/a/text()')
-    return {"uri":url, "type":type, "title":title, "authors":authors}
+    if not swrc.resource_in_graph(url):
+        page = requests.get(url)
+        tree = html.fromstring(page.content)
+        type = tree.xpath('//span[text()="Type of material:"]/../span[text()!="Type of material:"]/text()')[0]
+        title = tree.xpath('//div[@id="aspect_artifactbrowser_ItemViewer_div_item-view"]/div/h1/text()')[0]
+        authors = tree.xpath('//span[text()="Author:"]/../span/a/text()')
+        return {"uri":url, "type":type, "title":title, "authors":authors}
+    else:
+        return None
 
 
 def add_paper_details(from_paper, type, title, authors, base_url, num):
@@ -54,7 +58,9 @@ def add_paper_details(from_paper, type, title, authors, base_url, num):
 if __name__ == '__main__':
     domain = 'http://researchrepository.ucd.ie'
     uri_to_use = domain + "/"
-    swrc = SWRC(uri_to_use)
+    output_filename = 'ucd_research.n3'
+    output_filename = os.path.join('output', output_filename)
+    swrc = SWRC(uri_to_use, output_filename)
     title = "http://researchrepository.ucd.ie/browse?type=title"
     papers = []
     while title is not None:
@@ -66,8 +72,13 @@ if __name__ == '__main__':
     paper_trees = p.map(get_page_info, papers)
     print("Trees got, adding data")
     i = 0
-    for paper in paper_trees:
-        add_paper_details(paper["uri"], paper["type"], paper["title"], paper["authors"], domain, i)
-        i += 1
-    swrc.output('ucd_research.n3')
+    try:
+        for paper in paper_trees:
+            if paper is not None: # If it doesn't already exist in the graph
+                add_paper_details(paper["uri"], paper["type"], paper["title"], paper["authors"], domain, i)
+            i += 1
+    except (KeyboardInterrupt, SystemExit):
+        swrc.output(output_filename)
+    swrc.output(output_filename)
     swrc.get_authors()
+    # TODO: Add local cache support
