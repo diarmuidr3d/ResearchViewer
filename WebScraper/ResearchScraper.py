@@ -42,17 +42,23 @@ def get_page_info(url):
         type = tree.xpath('//span[text()="Type of material:"]/../span[text()!="Type of material:"]/text()')[0]
         title = tree.xpath('//div[@id="aspect_artifactbrowser_ItemViewer_div_item-view"]/div/h1/text()')[0]
         authors = tree.xpath('//span[text()="Author:"]/../span/a/text()')
+        authors = map(split_author_name,authors)
         return {"uri":url, "type":type, "title":title, "authors":authors}
     else:
         return None
 
 
-def add_paper_details(from_paper, type, title, authors, base_url, num):
-    print("{0}: {1} {2}".format(num,type,title))
-    paper_rdf = swrc.add_paper(from_paper, type, title)
-    for author in authors:
-        author_uri = base_url + "/author/" + author.replace(',', '').replace(' ', '')
-        swrc.add_author(author_uri, author, paper_rdf)
+def split_author_name(name):
+    if ',' in name:
+        findex = name.index(',')
+        lindex = findex+2
+    else:
+        findex = len(name) -1
+        lindex = 0
+    return {"uri": uri_to_use + 'author/' + name.replace(',', '').replace(' ', '').replace('.',''),
+            "last": name[:findex],
+            "first": name[lindex:]
+            }
 
 
 if __name__ == '__main__':
@@ -60,7 +66,7 @@ if __name__ == '__main__':
     uri_to_use = domain + "/"
     output_filename = 'ucd_research.n3'
     output_filename = os.path.join('output', output_filename)
-    swrc = SWRC(uri_to_use, output_filename)
+    swrc = SWRC(uri_to_use, output_filename, author_uri=uri_to_use+"author/")
     title = "http://researchrepository.ucd.ie/browse?type=title"
     papers = []
     while title is not None:
@@ -68,14 +74,14 @@ if __name__ == '__main__':
         print("Number of papers: {0}".format(len(papers)))
         title = get_next_page(title, uri_to_use)
     print("Papers got, getting trees now")
-    p = Pool()
-    paper_trees = p.map(get_page_info, papers)
+    pool = Pool()
+    paper_trees = pool.map(get_page_info, papers)
     print("Trees got, adding data")
     i = 0
     try:
         for paper in paper_trees:
             if paper is not None: # If it doesn't already exist in the graph
-                add_paper_details(paper["uri"], paper["type"], paper["title"], paper["authors"], domain, i)
+                swrc.add_paper(paper["uri"], paper["type"], paper["title"], paper["authors"])
             i += 1
     except (KeyboardInterrupt, SystemExit):
         swrc.output(output_filename)
