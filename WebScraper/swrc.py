@@ -1,4 +1,6 @@
-from rdflib import Graph, Namespace, RDF, Literal, URIRef, XSD
+from rdflib import Graph, Namespace, RDF, Literal, URIRef, XSD, RDFS
+import rdflib
+from graph_load import rdflib_put
 
 __author__ = 'diarmuid'
 
@@ -18,6 +20,10 @@ class SWRC:
 
     def __init__(self, uri, file=None, author_uri=None):
         self.graph = Graph(identifier=uri)
+        # I would like to use the below version but it uses an older version of URLGrabber
+        # self.graph = rdflib.ConjunctiveGraph('SPARQLUpdateStore')
+        # self.graph.open("http://localhost:3030/rrucd/sparql",
+        #        "http://localhost:3030/rrucd/update")
         if file is not None:
             try:
                 self.graph.load(file, format='n3')
@@ -79,9 +85,47 @@ class SWRC:
             return author_rdf
         return None
 
-    def output(self, filename):
-        output_file = open(filename, "wb")
-        self.graph.serialize(destination=output_file, format='n3', auto_compact=True)
+    def add_affiliation(self, author_rdf=None, author_uri=None, organisation_rdf=None, organisation_uri=None):
+        def add_org(author):
+            if organisation_rdf is not None:
+                author.add(self.swrc_ns.affiliation, organisation_rdf)
+            elif organisation_uri is not None:
+                org = self.graph.resource(organisation_uri)
+                author.add(self.swrc_ns.affiliation, org)
+        if author_rdf is not None:
+            add_org(author_rdf)
+        elif author_uri is not None:
+            auth = self.graph.resource(author_uri)
+            add_org(auth)
+
+    def add_university(self, uri, name):
+        university = self.graph.resource(uri)
+        name = Literal(name, datatype=XSD.string)
+        university.set(RDFS.label, name)
+        return university
+
+    def add_department(self, uri, name, university_rdf=None):
+        department = self.graph.resource(uri)
+        name = Literal(name, datatype=XSD.string)
+        department.set(RDFS.label, name)
+        if university_rdf is not None:
+            university_rdf.add(self.swrc_ns.hasParts, department)
+        return department
+
+    def add_institute(self, uri, name, department_rdf=None):
+        institute = self.graph.resource(uri)
+        name = Literal(name, datatype=XSD.string)
+        institute.set(RDFS.label, name)
+        if department_rdf is not None:
+            department_rdf.add(self.swrc_ns.hasParts, institute)
+        return institute
+
+    def output(self, filename=None, endpoint=None):
+        if filename != None:
+            output_file = open(filename, "wb")
+            self.graph.serialize(destination=output_file, format='n3', auto_compact=True)
+        if endpoint != None:
+            rdflib_put(self.graph, endpoint)
 
     def get_authors(self):
         result = self.graph.query(
