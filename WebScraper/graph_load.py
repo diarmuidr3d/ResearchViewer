@@ -3,9 +3,8 @@ from SPARQLWrapper import SPARQLWrapper, JSON
 
 __author__ = 'diarmuid'
 
-# class RDFLib_SPARQL:
-def get():
-    sparql = SPARQLWrapper('http://localhost:3030/rrucd/query')
+def rdflib_get(endpoint):
+    sparql = SPARQLWrapper(endpoint)
     sparql.setReturnFormat(JSON)
     sparql.setQuery('''
         SELECT ?s ?p ?o
@@ -26,9 +25,29 @@ def get():
             o = graph.resource(oval['value'])
         s.add(p, o)
     output_file = open('tester.n3','wb')
+    for (subject, predicate, object) in graph:
+        print("{0}, {1}, {2}".format(subject,predicate,object))
     graph.serialize(destination=output_file, format='n3', auto_compact=True)
+    return graph
 
-# def put():
-#     TODO
 
-get()
+def rdflib_put(graph, endpoint):
+    sparql = SPARQLWrapper(endpoint)
+    sparql.setReturnFormat(JSON)
+    triples = ""
+    for (subject, predicate, object) in graph:
+        triples += " <{0}> <{1}> ".format(subject,predicate)
+        if type(object) is Literal:
+            triples += '"{0}"'.format(object)
+            if object.language is not None:
+                triples += '@{0}'.format(object.language)
+            elif object.datatype is not None:
+                triples += '^^<{0}>'.format(object.datatype)
+        else:
+            triples += "<{0}>".format(object)
+        triples += " . "
+    query = 'DELETE { ' + triples + ' } INSERT { ' + triples + ' } WHERE {} '
+    print(query)
+    sparql.setQuery(query)
+    sparql.method = 'POST'
+    sparql.query()
