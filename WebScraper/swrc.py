@@ -15,7 +15,11 @@ class SWRC:
         "Conference Publication": swrc_ns.InProceedings,
         "Working Paper": swrc_ns.TechnicalReport,
         "Book": swrc_ns.Book,
-        "Contribution to Newspaper/Magazine": swrc_ns.Magazine
+        "Contribution to Newspaper/Magazine": swrc_ns.Magazine,
+        "Review": swrc_ns.Misc,
+        "Government Publication": swrc_ns.Publication,
+        "Other": swrc_ns.Misc,
+        "Master Thesis": swrc_ns.MasterThesis
     }
 
     def __init__(self, uri, file=None, author_uri=None):
@@ -47,7 +51,7 @@ class SWRC:
         if type in self.paper_types:
             paper_type = self.paper_types[type]
         else:
-            paper_type = self.swrc_ns.Publication
+            paper_type = self.swrc_ns.Misc
             print("Type '{0}' for paper {1} not in Journal Types".format(type, uri))
         paper_rdf.set(RDF.type, paper_type)
         title = Literal(name, lang="en")
