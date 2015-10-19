@@ -1,7 +1,9 @@
 from multiprocessing.pool import Pool
 import os
+import traceback
 from lxml import html
 import requests
+import sys
 from swrc import SWRC
 
 __author__ = 'Diarmuid Ryan'
@@ -52,31 +54,31 @@ def split_author_name(name):
     else:
         first_name_index = len(name) - 11
         last_name_index = 0
-    return {"uri": uri_to_use + 'author/' + name.replace(',', '').replace(' ', '').replace('.', ''),
+    return {"uri": uri_to_use + 'author/' + name.replace(',', '').replace(' ', '').replace('.', '').replace("'",""),
             "last": name[:first_name_index],
             "first": name[last_name_index:]
             }
-
 
 def get_departments(page_domain, url, process_pool):
     uni = swrc.add_university("http://ucd.ie", "University College Dublin")
     page = requests.get(page_domain + url)
     tree = html.fromstring(page.content)
-    college_names = tree.xpath("/html/body/div/div[4]/div/div[1]/div/ul/li/div/div/a/span/text()")
-    college_links = tree.xpath("/html/body/div/div[4]/div/div[1]/div/ul/li/div/div/a/@href")
-    index = 1
+    colleges = tree.xpath("/html/body/div/div[4]/div/div[1]/div/ul/li")
     print("Colleges got, adding schools")
-    while index <= len(college_names):
-        college_link = page_domain + college_links[index - 1]
-        college = swrc.add_department(college_link, college_names[index - 1], uni)
-        school_names = tree.xpath(
-            "/html/body/div/div[4]/div/div[1]/div/ul/li[{0}]/ul/li/div/div/a/span/text()".format(index))
-        school_links = tree.xpath(
-            "/html/body/div/div[4]/div/div[1]/div/ul/li[{0}]/ul/li//div/div/a/@href".format(index))
+    index = 1
+    for college in colleges:
+        name = college.xpath("div/div/a/span/text()")[0]
+        link = page_domain + college.xpath("div/div/a/@href")[0]
+        school_names = college.xpath("ul/li/div/div/a/span/text()".format(index))
+        school_links = college.xpath("ul/li/div/div/a/@href".format(index))
+        print("schools for ", name, " are ", school_links)
+        college_rdf = swrc.add_college(link, name, uni)
         schools = process_pool.map(get_department_authors, zip(school_links, school_names))
+        print(schools)
         for school in schools:
-            print("Adding {0}".format(school["name"]))
-            dept = swrc.add_department(school["uri"], school["name"], college)
+            print("Adding school {0}".format(school["name"]))
+            dept = swrc.add_college(school["uri"], school["name"], college_rdf)
+            print(school["authors"])
             for author in school["authors"]:
                 swrc.add_affiliation(author_uri=author["uri"], organisation_rdf=dept)
         index += 1
@@ -88,7 +90,7 @@ def get_department_authors(dep):
     link = page_domain + link
     page = requests.get(link)
     tree = html.fromstring(page.content)
-    author_link = link + tree.xpath("/html/body/div/div[4]/div/div[1]/div/div[1]/div/ul/li[2]/a/@href")[0]
+    author_link = page_domain + tree.xpath("/html/body/div/div[4]/div/div[1]/div/div[1]/div/ul/li[2]/a/@href")[0]
     authors = []
     while author_link is not None:
         print("Page requested: ", author_link)
@@ -114,6 +116,7 @@ if __name__ == '__main__':
     output_filename = 'ucd_research.n3'
     output_filename = os.path.join('output', output_filename)
     swrc = SWRC(uri_to_use, output_filename, author_uri=uri_to_use + "author/")
+    swrc = SWRC(uri_to_use, author_uri=uri_to_use + "author/")
     title = "http://researchrepository.ucd.ie/browse?type=title"
     papers = []
     while title is not None:
@@ -133,7 +136,13 @@ if __name__ == '__main__':
             print(i)
             i += 1
         get_departments(domain, departments_link, pool)
-    except (KeyboardInterrupt, SystemExit):
-        swrc.output(output_filename, 'http://localhost:3030/rrucd/update')
-    swrc.output(output_filename, 'http://localhost:3030/rrucd/update')
-    swrc.get_authors()
+    except (KeyboardInterrupt, SystemExit, Exception) as err:
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+        print("*** print_exception: ***")
+        traceback.print_exception(exc_type, exc_value, exc_traceback, file=sys.stdout)
+        print("*** Exception over ***")
+        swrc.output(output_filename)
+    # swrc.output(output_filename, 'http://localhost:3030/rucd/update')
+    swrc.output(output_filename)
+    # swrc.get_authors()
+    # TODO: Also get authors that are advisers or contributrs
