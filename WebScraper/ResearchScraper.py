@@ -10,22 +10,35 @@ __author__ = 'Diarmuid Ryan'
 
 
 def get_category_links(category_id, query_url):
+    """
+    Gets the links that are stroed in a particular category on the site, used exclusively now for getting the papers
+    :param category_id: the div id for the container
+    :param query_url: The website to be queried
+    :return: an array of links
+    """
     elements = run_query('//div[@id="' + category_id + '"]/ul/li/div/div/a/@href', query_url)
     return elements
 
 
 def run_query(query, query_url):
+    """
+    Runs an xpath query on a particular URL. Just used to shorten code elsewhere
+    :param query: The XPath query to be used
+    :param query_url: The url of the webpage on which the query is to be carried out
+    :return: an array of the elements returned by the xpath query
+    """
     page = requests.get(query_url)
     tree = html.fromstring(page.content)
     return tree.xpath(query)
 
 
-def get_title_link(container_id, query_url, base_url):
-    titles_link = run_query('//ul[@id="' + container_id + '"]/li/a[text()="Titles"]/@href', query_url)
-    return base_url + titles_link[0]
-
-
 def get_next_page(from_page, base_url):
+    """
+    Gets the "Next Page" link from a particular page and formats it as a Fully Qualified URL
+    :param from_page: The lxml tree on which to run the XPath query
+    :param base_url: The domain to be appended to the link
+    :return: Returns a URL if a next page link is found or None if not
+    """
     next_page_links = run_query('//a[text()="Next Page"]/@href', from_page)
     if len(next_page_links) > 0:
         return base_url + "/" + next_page_links[0]
@@ -34,6 +47,15 @@ def get_next_page(from_page, base_url):
 
 
 def get_page_info(url):
+    """
+    Gets the details of a paper.
+    uri is the URL of the paper
+    type is the paper type (eg: Doctoral Thesis)
+    title is the title of the paper
+    authors is an array of authors made up values returned by split_author_name
+    :param url: The URL of the paper
+    :return: a list with attributes uri, type, title and authors.
+    """
     domainn = 'http://researchrepository.ucd.ie'
     url = domainn + url
     print(url)
@@ -42,41 +64,60 @@ def get_page_info(url):
     paper_type = tree.xpath('//span[text()="Type of material:"]/../span[text()!="Type of material:"]/text()')[0]
     ptitle = tree.xpath('//div[@id="aspect_artifactbrowser_ItemViewer_div_item-view"]/div/h1/text()')[0]
     authors = tree.xpath('//span[text()="Author:"]/../span/a/text()')
-    authors = map(split_author_name, authors)
+    authors = list(map(split_author_name, authors))
     advisors = tree.xpath('//span[text()="Advisor:"]/../span[2]/text()')
     if len(advisors) > 0:
         advisors = advisors[0]
         authors += split_advisors(advisors)
     contributors = tree.xpath('//span[text()="Contributor:"]/../span/a/text()')
     if len(contributors) > 0:
-        contributors = map(split_author_name, contributors)
+        contributors = list(map(split_author_name, contributors))
         authors += contributors
     paper_title = ptitle.replace('\r\n', " ")
     return {"uri": url, "type": paper_type, "title": paper_title, "authors": authors}
 
 
 def split_advisors(advisors):
+    """
+    Splits a string representing a set of authors in a list
+    :param advisors: The set of authors in the form Lastname, Firstname; Lastname, Firstname;...
+    :return : A list of dictionaries where the dictionaries are those returned by split_author_name
+    :rtype : list
+    """
     divided_advisors = []
     index = advisors.find(';')
     while index is not -1:
         divided_advisors.append(split_author_name(advisors[:index].strip()))
-        advisors = advisors[index+1:]
+        advisors = advisors[index + 1:]
         index = advisors.find(';')
+    return divided_advisors
 
 
 def split_author_name(name):
+    """
+    Splits a string representing a person up and returns as a dictionary
+    :param name: A string of the form Lastname, Firstname
+    :return: A dictionary with attributes uri (a unique uri created), last (the person's last name), first (the person's first name)
+    """
     if ',' in name:
         first_name_index = name.index(',')
         last_name_index = first_name_index + 2
     else:
         first_name_index = len(name) - 11
         last_name_index = 0
-    return {"uri": uri_to_use + 'author/' + name.replace(',', '').replace(' ', '').replace('.', '').replace("'",""),
+    return {"uri": uri_to_use + 'author/' + name.replace(',', '').replace(' ', '').replace('.', '').replace("'", ""),
             "last": name[:first_name_index],
             "first": name[last_name_index:]
             }
 
+
 def get_departments(page_domain, url, process_pool):
+    """
+    Gets the Colleges and Schools from the relevant page and adds them and their authors to the graph
+    :param page_domain: The website domain
+    :param url: The page url (without domain)
+    :param process_pool: a multiprocessing pool
+    """
     uni = swrc.add_university("http://ucd.ie", "University College Dublin")
     page = requests.get(page_domain + url)
     tree = html.fromstring(page.content)
@@ -102,6 +143,11 @@ def get_departments(page_domain, url, process_pool):
 
 
 def get_department_authors(dep):
+    """
+    Gets all authors from a particular college or school or insitute
+    :param dep: A (link, name) tuple for the college or school for which the authors are to be gotten
+    :return: a dictionary of uri, name and authors. authors is a list of authors returned by split_author_name
+    """
     page_domain = "http://researchrepository.ucd.ie"
     (link, name) = dep
     link = page_domain + link
