@@ -43,8 +43,25 @@ def get_page_info(url):
     ptitle = tree.xpath('//div[@id="aspect_artifactbrowser_ItemViewer_div_item-view"]/div/h1/text()')[0]
     authors = tree.xpath('//span[text()="Author:"]/../span/a/text()')
     authors = map(split_author_name, authors)
+    advisors = tree.xpath('//span[text()="Advisor:"]/../span[2]/text()')
+    if len(advisors) > 0:
+        advisors = advisors[0]
+        authors += split_advisors(advisors)
+    contributors = tree.xpath('//span[text()="Contributor:"]/../span/a/text()')
+    if len(contributors) > 0:
+        contributors = map(split_author_name, contributors)
+        authors += contributors
     paper_title = ptitle.replace('\r\n', " ")
     return {"uri": url, "type": paper_type, "title": paper_title, "authors": authors}
+
+
+def split_advisors(advisors):
+    divided_advisors = []
+    index = advisors.find(';')
+    while index is not -1:
+        divided_advisors.append(split_author_name(advisors[:index].strip()))
+        advisors = advisors[index+1:]
+        index = advisors.find(';')
 
 
 def split_author_name(name):
@@ -93,7 +110,6 @@ def get_department_authors(dep):
     author_link = page_domain + tree.xpath("/html/body/div/div[4]/div/div[1]/div/div[1]/div/ul/li[2]/a/@href")[0]
     authors = []
     while author_link is not None:
-        print("Page requested: ", author_link)
         page = requests.get(author_link)
         tree = html.fromstring(page.content)
         # This XPath is different to that in a browser as the acutal code and the browser display are different
@@ -115,7 +131,7 @@ if __name__ == '__main__':
     requests.get(uri_to_use + "robots.txt")
     output_filename = 'ucd_research.n3'
     output_filename = os.path.join('output', output_filename)
-    swrc = SWRC(uri_to_use, output_filename, author_uri=uri_to_use + "author/")
+    # swrc = SWRC(uri_to_use, output_filename, author_uri=uri_to_use + "author/")
     swrc = SWRC(uri_to_use, author_uri=uri_to_use + "author/")
     title = "http://researchrepository.ucd.ie/browse?type=title"
     papers = []
@@ -145,4 +161,3 @@ if __name__ == '__main__':
     # swrc.output(output_filename, 'http://localhost:3030/rucd/update')
     swrc.output(output_filename)
     # swrc.get_authors()
-    # TODO: Also get authors that are advisers or contributrs
