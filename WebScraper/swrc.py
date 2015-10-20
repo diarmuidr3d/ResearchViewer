@@ -3,8 +3,8 @@ from graph_load import rdflib_put
 
 __author__ = 'diarmuid'
 
-class SWRC:
 
+class SWRC:
     ucd_ns = Namespace("http://diarmuidr3d.github.io/swrc_ont/swrc_UCD.owl#")
     paper_types = {
         "Journal Article": ucd_ns.Article,
@@ -39,6 +39,11 @@ class SWRC:
         self.author_uri = author_uri
 
     def resource_in_graph(self, resource):
+        """
+        Checks if a particular resource is contained in the Graph already
+        :param resource: the URI of the resource to be checked
+        :return: True if the object is contained in it, False otherwise
+        """
         resource = URIRef(resource)
         if (resource, None, None) in self.graph:
             return True
@@ -46,6 +51,14 @@ class SWRC:
             return False
 
     def add_paper(self, uri, type, name, authors=None):
+        """
+        Adds a paper to the graph
+        :param uri: The uri to be given to the paper
+        :param type: The type of the paper from @paper_type
+        :param name: The name of the paper
+        :param authors: The authors of the paper
+        :return: The RDF resource for the paper in the graph
+        """
         paper_rdf = self.graph.resource(uri)
         if type in self.paper_types:
             paper_type = self.paper_types[type]
@@ -63,6 +76,10 @@ class SWRC:
         return paper_rdf
 
     def add_co_authors(self, array_rdf):
+        """
+        Takes a list of author Resources and creates cooperatesWith links between all of them
+        :param array_rdf: The list of author Resources
+        """
         i = 0
         while i < len(array_rdf):
             j = 0
@@ -73,6 +90,13 @@ class SWRC:
             i += 1
 
     def add_author(self, author_details, author_of, co_authors=None):
+        """
+        Adds an author to the graph
+        :param author_details: a dictionary of the author details containing values for uri, first and last names
+        :param author_of: A paper of which the author contributed to
+        :param co_authors: The other authors that this author worked with
+        :return: The author's Resource
+        """
         if author_details["first"] != 'et al.':
             author_rdf = self.graph.resource(author_details["uri"])
             author_rdf.set(RDF.type, self.ucd_ns.AcademicStaff)
@@ -89,12 +113,23 @@ class SWRC:
         return None
 
     def add_affiliation(self, author_rdf=None, author_uri=None, organisation_rdf=None, organisation_uri=None):
+        """
+        Adds an affiliation for an author to an organisation (eg: Institute)
+        One of author_rdf or author_uri must be provided
+        One of organisation_rdf or organisation_uri must be provided
+        :param author_rdf: A Resource for the author
+        :param author_uri: the Author's URI
+        :param organisation_rdf: A Resource for the organisation
+        :param organisation_uri: the Organisation's URI
+        """
+
         def add_org(author):
             if organisation_rdf is not None:
                 author.add(self.ucd_ns.affiliation, organisation_rdf)
             elif organisation_uri is not None:
                 org = self.graph.resource(organisation_uri)
                 author.add(self.ucd_ns.affiliation, org)
+
         if author_rdf is not None:
             add_org(author_rdf)
         elif author_uri is not None:
@@ -102,6 +137,12 @@ class SWRC:
             add_org(auth)
 
     def add_university(self, uri, name):
+        """
+        Adds a University to the graph
+        :param uri: The unique URI for the university
+        :param name: the name of the university
+        :return: The Resource for the University
+        """
         university = self.graph.resource(uri)
         university.set(RDF.type, self.ucd_ns.University)
         name = Literal(name, datatype=XSD.string)
@@ -109,6 +150,13 @@ class SWRC:
         return university
 
     def add_college(self, uri, name, university_rdf=None):
+        """
+        Adds a college
+        :param uri: The URI for the college
+        :param name: The name of the college
+        :param university_rdf: The University Resource of which the college is part
+        :return: The Resource for the college
+        """
         college = self.graph.resource(uri)
         college.set(RDF.type, self.ucd_ns.College)
         name = Literal(name, datatype=XSD.string)
@@ -118,6 +166,13 @@ class SWRC:
         return college
 
     def add_school(self, uri, name, college_rdf=None):
+        """
+        Adds a school to the graph
+        :param uri: The URI for the school
+        :param name: The name of the school
+        :param college_rdf: A College Resource of which the school is part
+        :return: A resource for the school
+        """
         school = self.graph.resource(uri)
         school.set(RDF.type, self.ucd_ns.School)
         name = Literal(name, datatype=XSD.string)
@@ -127,6 +182,13 @@ class SWRC:
         return school
 
     def add_institute(self, uri, name, department_rdf=None):
+        """
+        Adds a institute to the graph
+        :param uri: The URI for the institute
+        :param name: The name of the institute
+        :param college_rdf: An organisation Resource of which the institute is part
+        :return: A resource for the institute
+        """
         institute = self.graph.resource(uri)
         institute.set(RDF.type, self.ucd_ns.Institute)
         name = Literal(name, datatype=XSD.string)
@@ -136,6 +198,11 @@ class SWRC:
         return institute
 
     def output(self, filename=None, endpoint=None):
+        """
+        Outputs the graph into a file / sparql endpoint
+        :param filename: the file in which to store the graph
+        :param endpoint: the endpoint in which to store the graph
+        """
         if filename != None:
             output_file = open(filename, "wb")
             self.graph.serialize(destination=output_file, format='n3', auto_compact=True)
@@ -143,6 +210,10 @@ class SWRC:
             rdflib_put(self.graph, endpoint)
 
     def get_authors(self):
+        """
+        Prints the number of authors in the graph
+
+        """
         result = self.graph.query(
             """
             PREFIX swrc: <http://swrc.ontoware.org/ontology#>
