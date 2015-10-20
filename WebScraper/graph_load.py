@@ -3,7 +3,14 @@ from SPARQLWrapper import SPARQLWrapper, JSON
 
 __author__ = 'diarmuid'
 
+
 def rdflib_get(endpoint):
+    """
+    Gets an RDFlib graph from a SPARQL Endpoint
+    :param endpoint: the URL of the endpoint
+    :return: an RDFLib graph containing all data from the endpoint
+    """
+    print("Getting graph from ", endpoint)
     sparql = SPARQLWrapper(endpoint)
     sparql.setReturnFormat(JSON)
     sparql.setQuery('''
@@ -24,19 +31,22 @@ def rdflib_get(endpoint):
         else:
             o = graph.resource(oval['value'])
         s.add(p, o)
-    output_file = open('tester.n3','wb')
-    for (subject, predicate, object) in graph:
-        print("{0}, {1}, {2}".format(subject,predicate,object))
-    graph.serialize(destination=output_file, format='n3', auto_compact=True)
+    print("Got graph from endpoint")
     return graph
 
 
 def rdflib_put(graph, endpoint):
+    """
+    Updates a SPARQL Endpoint with all data from an RDFlib graph
+    :param graph: The RDFLib graph to get the data from
+    :param endpoint: The URL of the SPARQL Update Enpoint to which the data will be sent
+    """
+    print("Putting ", graph, " to ", endpoint)
     sparql = SPARQLWrapper(endpoint)
     sparql.setReturnFormat(JSON)
     triples = ""
     for (subject, predicate, object) in graph:
-        triples += " <{0}> <{1}> ".format(subject,predicate)
+        triples += " <{0}> <{1}> ".format(subject, predicate)
         if type(object) is Literal:
             triples += '"{0}"'.format(object)
             if object.language is not None:
@@ -47,7 +57,8 @@ def rdflib_put(graph, endpoint):
             triples += "<{0}>".format(object)
         triples += " . "
     query = 'DELETE { ' + triples + ' } INSERT { ' + triples + ' } WHERE {} '
-    print(query)
+    print("Setting update")
     sparql.setQuery(query)
     sparql.method = 'POST'
     sparql.query()
+    print("Updated")
