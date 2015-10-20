@@ -73,6 +73,14 @@ def get_page_info(url):
     if len(contributors) > 0:
         contributors = list(map(split_author_name, contributors))
         authors += contributors
+    editors = tree.xpath('//span[text()="Editor:"]/../span/a/text()')
+    if len(editors) > 0:
+        editors = list(map(split_author_name, editors))
+        authors += editors
+    photographers = tree.xpath('//span[text()="Photographer:"]/../span/a/text()')
+    if len(editors) > 0:
+        photographers = list(map(split_author_name, photographers))
+        authors += photographers
     paper_title = ptitle.replace('\r\n', " ")
     return {"uri": url, "type": paper_type, "title": paper_title, "authors": authors}
 
@@ -90,6 +98,7 @@ def split_advisors(advisors):
         divided_advisors.append(split_author_name(advisors[:index].strip()))
         advisors = advisors[index + 1:]
         index = advisors.find(';')
+    divided_advisors.append(split_author_name(advisors.strip()))
     return divided_advisors
 
 
@@ -207,3 +216,4 @@ if __name__ == '__main__':
     # swrc.output(output_filename, 'http://localhost:3030/rucd/update')
     swrc.output(output_filename)
     # swrc.get_authors()
+# TODO: Add editors
