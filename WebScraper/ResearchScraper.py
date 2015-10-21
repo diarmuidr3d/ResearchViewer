@@ -78,7 +78,7 @@ def get_page_info(url):
         editors = list(map(split_author_name, editors))
         authors += editors
     photographers = tree.xpath('//span[text()="Photographer:"]/../span/a/text()')
-    if len(editors) > 0:
+    if len(photographers) > 0:
         photographers = list(map(split_author_name, photographers))
         authors += photographers
     paper_title = ptitle.replace('\r\n', " ")
@@ -108,16 +108,19 @@ def split_author_name(name):
     :param name: A string of the form Lastname, Firstname
     :return: A dictionary with attributes uri (a unique uri created), last (the person's last name), first (the person's first name)
     """
-    if ',' in name:
-        first_name_index = name.index(',')
-        last_name_index = first_name_index + 2
+    if name == 'et al.':
+        return None
     else:
-        first_name_index = len(name) - 11
-        last_name_index = 0
-    return {"uri": uri_to_use + 'author/' + name.replace(',', '').replace(' ', '').replace('.', '').replace("'", ""),
-            "last": name[:first_name_index],
-            "first": name[last_name_index:]
-            }
+        if ',' in name:
+            first_name_index = name.index(',')
+            last_name_index = first_name_index + 2
+        else:
+            first_name_index = len(name) - 11
+            last_name_index = 0
+        return {"uri": uri_to_use + 'author/' + name.replace(',', '').replace(' ', '').replace('.', '').replace("'", ""),
+                "last": name[:first_name_index],
+                "first": name[last_name_index:]
+                }
 
 
 def get_departments(page_domain, url, process_pool):
@@ -147,7 +150,8 @@ def get_departments(page_domain, url, process_pool):
             dept = swrc.add_college(school["uri"], school["name"], college_rdf)
             print(school["authors"])
             for author in school["authors"]:
-                swrc.add_affiliation(author_uri=author["uri"], organisation_rdf=dept)
+                if author != None: # If the author isn't et al.
+                    swrc.add_affiliation(author_uri=author["uri"], organisation_rdf=dept)
         index += 1
 
 

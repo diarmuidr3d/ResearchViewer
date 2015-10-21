@@ -71,7 +71,8 @@ class SWRC:
         if authors is not None:
             authors_rdf = []
             for author in authors:
-                authors_rdf.append(self.add_author(author, paper_rdf))
+                if author is not None:
+                    authors_rdf.append(self.add_author(author, paper_rdf))
             self.add_co_authors(authors_rdf)
         return paper_rdf
 
