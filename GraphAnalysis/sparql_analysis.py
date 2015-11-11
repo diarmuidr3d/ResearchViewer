@@ -1,4 +1,5 @@
 from SPARQLWrapper import SPARQLWrapper, JSON
+import networkx as nx
 from networkx.algorithms.centrality.degree_alg import degree_centrality
 from networkx.algorithms.centrality.closeness import closeness_centrality
 from networkx.algorithms.centrality.eigenvector import eigenvector_centrality
@@ -6,11 +7,10 @@ from networkx.algorithms.components.connected import connected_component_subgrap
 import csv
 import os
 import time
-from community_analysis import CommunityAnalysis
 from sparql_queries import get_co_authors
+from community_analysis import CommunityAnalysis
 
 __author__ = 'diarmuid'
-
 
 def run_algorithms(graph):
     analyse.graph = graph
