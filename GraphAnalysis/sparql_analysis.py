@@ -89,3 +89,6 @@ for graph in results["connected_components"]:
 ids = output_nodes(results, 'nodes.csv')
 query_results = get_co_authors(endpoint)
 output_edges('coauthors.csv', ids)
+largest_component = max(results['connected_components'], key=len)
+component_results = run_algorithms(largest_component)
+output_nodes(component_results, 'largest_component_nodes.csv')
