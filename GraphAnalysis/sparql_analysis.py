@@ -1,5 +1,3 @@
-from SPARQLWrapper import SPARQLWrapper, JSON
-import networkx as nx
 from networkx.algorithms.centrality.degree_alg import degree_centrality
 from networkx.algorithms.centrality.closeness import closeness_centrality
 from networkx.algorithms.centrality.eigenvector import eigenvector_centrality
@@ -7,10 +5,12 @@ from networkx.algorithms.components.connected import connected_component_subgrap
 import csv
 import os
 import time
-from sparql_queries import get_co_authors
-from community_analysis import CommunityAnalysis
+
+from GraphAnalysis.community_analysis import CommunityAnalysis
+from GraphAnalysis.sparql_queries import get_co_authors
 
 __author__ = 'diarmuid'
+
 
 def run_algorithms(graph):
     analyse.graph = graph
@@ -19,29 +19,30 @@ def run_algorithms(graph):
     # closeness = closeness_centrality(graph, distance='inv_weight')
     results["closeness"] = closeness_centrality(graph)
     end = time.time()
-    print("Closeness time taken: {0}".format(end-start))
+    print("Closeness time taken: {0}".format(end - start))
     start = time.time()
     results["eigenvector"] = eigenvector_centrality(graph)
     end = time.time()
-    print("Eigen time taken: {0}".format(end-start))
+    print("Eigen time taken: {0}".format(end - start))
     start = time.time()
     results["degree"] = degree_centrality(graph)
     end = time.time()
-    print("Degree time taken: {0}".format(end-start))
+    print("Degree time taken: {0}".format(end - start))
     results["louvain"] = analyse.run_louvain()
     results["cliques"] = analyse.generate_author_clique_dict(analyse.run_k_cliques(20))
     start = time.time()
     results["connected_components"] = list(connected_component_subgraphs(ngraph))
     end = time.time()
-    print("Closeness time taken: {0}".format(end-start))
+    print("Closeness time taken: {0}".format(end - start))
     return results
 
 
 def output_nodes(results, filename):
     i = 0
     ids = {}
-    writer = csv.writer(open(os.path.join('output',filename), 'w'))
-    writer.writerow(["Id", "Label", "CLOSENESS", "EIGENVECTOR", "CLIQUES", "DEGREE", "COMMUNITY", "COMPONENT", "DEPARTMENT"])
+    writer = csv.writer(open(os.path.join('output', filename), 'w'))
+    writer.writerow(
+        ["Id", "Label", "CLOSENESS", "EIGENVECTOR", "CLIQUES", "DEGREE", "COMMUNITY", "COMPONENT", "DEPARTMENT"])
     for key, value in results["closeness"].items():
         this_key = key
         this_value = str(value)
@@ -65,13 +66,14 @@ def output_nodes(results, filename):
 
 
 def output_edges(filename, ids):
-    edges = csv.writer(open(os.path.join('output',filename), 'w'))
+    edges = csv.writer(open(os.path.join('output', filename), 'w'))
     edges.writerow(['Source', 'Target', 'Type', 'Id', 'Label', 'Weight'])
     id = 0
     for row in query_results:
         data = [ids[row["author"]["value"]], ids[row["coauthor"]["value"]], "Undirected", id, id, row["count"]["value"]]
         edges.writerow(data)
         id += 1
+
 
 endpoint = 'http://localhost:3030/ucdrr/query'
 analyse = CommunityAnalysis(endpoint)
