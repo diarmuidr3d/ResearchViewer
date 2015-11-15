@@ -3,7 +3,7 @@ import community
 import networkx as nx
 from networkx.algorithms.community.kclique import k_clique_communities
 
-from GraphAnalysis.sparql_queries import get_co_authors
+from GraphAnalysis.sparql_queries import get_co_authors_csi, get_co_authors
 
 __author__ = 'diarmuid'
 
@@ -50,6 +50,7 @@ class CommunityAnalysis:
         return authors
 
     def load_graph(self, endpoint):
+        # results = get_co_authors_csi(endpoint)
         results = get_co_authors(endpoint)
         ngraph = nx.Graph()
         for row in results:

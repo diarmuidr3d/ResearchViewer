@@ -7,7 +7,7 @@ import os
 import time
 
 from GraphAnalysis.community_analysis import CommunityAnalysis
-from GraphAnalysis.sparql_queries import get_co_authors
+from GraphAnalysis.sparql_queries import get_co_authors_csi, get_co_authors
 
 __author__ = 'diarmuid'
 
@@ -16,7 +16,7 @@ def run_algorithms(graph):
     analyse.graph = graph
     results = {}
     start = time.time()
-    # closeness = closeness_centrality(graph, distance='inv_weight')
+    # results["closeness"] = closeness_centrality(graph, distance='inv_weight')
     results["closeness"] = closeness_centrality(graph)
     end = time.time()
     print("Closeness time taken: {0}".format(end - start))
@@ -65,11 +65,11 @@ def output_nodes(results, filename):
     return ids
 
 
-def output_edges(filename, ids):
+def output_edges(filename, ids, results):
     edges = csv.writer(open(os.path.join('output', filename), 'w'))
     edges.writerow(['Source', 'Target', 'Type', 'Id', 'Label', 'Weight'])
     id = 0
-    for row in query_results:
+    for row in results:
         data = [ids[row["author"]["value"]], ids[row["coauthor"]["value"]], "Undirected", id, id, row["count"]["value"]]
         edges.writerow(data)
         id += 1
@@ -87,8 +87,9 @@ for graph in results["connected_components"]:
         connected_components_dict[node] = i
     i += 1
 ids = output_nodes(results, 'nodes.csv')
+# query_results = get_co_authors_csi(endpoint)
 query_results = get_co_authors(endpoint)
-output_edges('coauthors.csv', ids)
+output_edges('coauthors.csv', ids, query_results)
 largest_component = max(results['connected_components'], key=len)
 component_results = run_algorithms(largest_component)
 output_nodes(component_results, 'largest_component_nodes.csv')
