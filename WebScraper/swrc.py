@@ -1,5 +1,5 @@
 from rdflib import Graph, Namespace, RDF, Literal, URIRef, XSD, RDFS
-from graph_load import rdflib_put
+from WebScraper.graph_load import rdflib_put
 
 __author__ = 'diarmuid'
 

@@ -4,7 +4,7 @@ import traceback
 from lxml import html
 import requests
 import sys
-from swrc import SWRC
+from WebScraper.swrc import SWRC
 
 __author__ = 'Diarmuid Ryan'
 
