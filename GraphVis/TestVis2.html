@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Second Test Visualisation</title>
+    <style type="text/css">
+        #graph {
+            max-width: 1260px;
+            height: 650px;
+            margin: auto;
+        }
+    </style>
+    <script src="sigma_js/sigma.min.js"></script>
+    <script src="sparql/sparql.js"></script>
+    <!--<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>-->
+    <script src="jquery/jquery.js"></script>
+</head>
+<body>
+<div id="graph"></div>
+<script>
+    displayTypeCentricGraph("http://diarmuidr3d.github.io/swrc_ont/swrc_UCD.owl%23AcademicStaff", "http://diarmuidr3d.github.io/swrc_ont/swrc_UCD.owl%23cooperatesWith", 'http://localhost:3030/ucdrr/query');
+//    var rdf = "http://www.w3.org/1999/02/22-rdf-syntax-ns%23";
+//    query('http://localhost:3030/ucdrr/query', 'PREFIX rdf: <' + rdf + '> SELECT ?s ?o ?p WHERE { ?s rdf:type ?p }', 'JSON', result);
+//
+//    function result (data) {
+//        console.log(data);
+//    }
+</script>
+</body>
+</html>
