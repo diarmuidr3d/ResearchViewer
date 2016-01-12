@@ -2,13 +2,17 @@
  * Created by diarmuid on 06/01/16.
  */
 
-var prefixes = "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns%23> ";
+var prefixes = [];
+prefixes.RDF = "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> ";
 
 function query(endpoint, query, format, successFunction) {
-    //var encodedQuery = encodeURI(query);
-    //var url = endpoint + '?query="' + encodedQuery + '"&output=' + format;
-    var url = endpoint + '?query=' + query + '&output=' + format;
-    //url = encodeURI(url);
+    var encodedQuery = encodeURI(query);
+    console.log("Query");
+    console.log(encodedQuery);
+    encodedQuery = encodedQuery.replace(/#/g,'%23');
+    console.log(encodedQuery);
+    var url = endpoint + '?query=' + encodedQuery + '&output=' + format;
+    console.log("URL");
     console.log(url);
     console.log(decodeURI(url));
     $.ajax({
