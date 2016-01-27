@@ -5,8 +5,11 @@
     <title>Second Test Visualisation</title>
     <style type="text/css">
         #graph {
-            max-width: 1260px;
-            height: 650px;
+            position: absolute;
+            width: 99%;
+            height: 99%;
+            /*max-width: 400px;*/
+            /*height: 400px;*/
             margin: auto;
         }
     </style>
@@ -16,11 +19,16 @@
     <!--<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>-->
     <script src="jquery/jquery.js"></script>
     <script src="sigma_js/plugins/sigma.layout.forceAtlas2.min.js"></script>
+    <!--<script src="sigma_js/plugins/sigma.layout.fruchterman.js"></script>-->
+    <!--<script src="sigma_js/plugins/sigma.plugins.animate.min.js"></script>-->
+    <!--<script src="sigma_js/plugins/sigma.layouts.forceLink/supervisor.js"></script>-->
+    <!--<script src="sigma_js/plugins/sigma.layouts.forceLink/worker.js"></script>-->
 </head>
 <body>
 <div id="graph"></div>
 <script>
-    displayAuthor("http://researchrepository.ucd.ie/author/CunninghamPádraig");
+//    displayAuthor("http://researchrepository.ucd.ie/author/CunninghamPádraig");
+    displayCoAuthorPath("http://researchrepository.ucd.ie/author/CunninghamPádraig","http://researchrepository.ucd.ie/author/GilchristMD");
 </script>
 </body>
 </html>
