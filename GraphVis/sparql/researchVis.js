@@ -20,7 +20,8 @@ function createSigma() {
 }
 
 function displayAuthor(uri) {
-    //var mySigma = new sigma('graph');
+    getPapersAuthored(uri);
+    $('#'+domElement).html('');
     var mySigma = createSigma();
     var graph = mySigma.graph;
     var authorSize = 2;
@@ -37,12 +38,12 @@ function displayAuthor(uri) {
     mySigma.bind('clickNode', function(e) {
         var nodeId = e.data.node.id;
         if(nodeId != uri) {
-            var div = document.getElementById(domElement);
-            var parent = div.parentNode;
-            parent.removeChild(div);
-            var newDiv = document.createElement('div');
-            newDiv.setAttribute('id',domElement);
-            parent.appendChild(newDiv);
+            //var div = document.getElementById(domElement);
+            //var parent = div.parentNode;
+            //parent.removeChild(div);
+            //var newDiv = document.createElement('div');
+            //newDiv.setAttribute('id',domElement);
+            //parent.appendChild(newDiv);
             displayAuthor(nodeId);
         }
     });
@@ -177,13 +178,13 @@ function displayAuthor(uri) {
 function finish(mySigma) {
     console.log("Running finish loop");
     mySigma.refresh();
-    //mySigma.startForceAtlas2({worker: true, barnesHutOptimize: false});
-    //setTimeout(stopForceAtlas, 500);
-    ////s.stopForceAtlas2();
-    //
-    //function stopForceAtlas() {
-    //    mySigma.stopForceAtlas2();
-    //}
+    mySigma.startForceAtlas2({worker: true, barnesHutOptimize: false});
+    setTimeout(stopForceAtlas, 500);
+    //s.stopForceAtlas2();
+
+    function stopForceAtlas() {
+        mySigma.stopForceAtlas2();
+    }
 
     //sigma.layouts.startForceLink(mySigma, {autoStop: true});
     //sigma.layouts.fruchtermanReingold.start(mySigma, {autoArea: true});
@@ -309,7 +310,8 @@ function displayCoAuthorPath(fromUri, toUri) {
                 });
             }
         }
-        finish(mySigma);
+        //finish(mySigma);
+        mySigma.refresh();
     }
 }
 function getAuthorName(uri, graph) {
@@ -322,5 +324,84 @@ function getAuthorName(uri, graph) {
     function addAuthor(data) {
         var row = data.results.bindings[0];
         graph.nodes(uri)["label"] =  row.firstName.value + ", " + row.lastName.value;
+    }
+}
+function findAuthorForm(formId, displayId, authorClickFunction) {
+    //var form = $('#'+formId);
+    //console.log(form);
+    //form.slideUp();
+    var firstName = $('input[id=firstName]');
+    var lastName = $('input[id=lastName]');
+    findAuthor(firstName.val(),lastName.val(),displayId, authorClickFunction);
+}
+function findAuthor(firstName, lastname, displayId, clickFunction) {
+    var queryString = prefixes.RUCD + "SELECT ?author ?firstName ?lastName WHERE {\n";
+    if(typeof firstName != 'undefined' && firstName != "") {
+        queryString += '    ?author rucd:firstName "' + firstName + '" . \n';
+    }
+    if(typeof lastname != 'undefined' && lastname != "") {
+        queryString += '    ?author rucd:lastName "' + lastname + '" . \n';
+    }
+    queryString += "    ?author rucd:firstName ?firstName . \n" +
+        "   ?author rucd:lastName ?lastName . \n" +
+        "}";
+    query('http://localhost:3030/ucdrr/query', queryString, "JSON", displayAuthorResults);
+
+    function displayAuthorResults(data) {
+        var container = $("#searchResults");
+        container.append("Select an author to continue:");
+        var list = $("<div></div>");
+        container.append(list);
+        list.addClass("list-group");
+        var bindings = data.results.bindings;
+        for(var i in bindings) {
+            var row = bindings[i];
+            var item = $("<a></a>");
+            item.addClass("list-group-item");
+            item.attr("href", "#");
+            item.attr("id", row.author.value);
+            item.click(function(args){clickFunction($(args.target).attr("id"))});
+            item.append(row.firstName.value + ", " + row.lastName.value);
+            list.append(item);
+        }
+    }
+}
+function hideSearch() {
+    var search = $("#searchArea");
+    var hideButton = $("#hideSearch");
+    if(search.is(":visible")) {
+        search.slideUp();
+        hideButton.html('Unhide');
+    } else {
+        search.slideDown();
+        hideButton.html('Hide');
+    }
+}
+function getPapersAuthored(authorUri) {
+    var queryString = "PREFIX rucd: <http://diarmuidr3d.github.io/swrc_ont/swrc_UCD.owl#>\n" +
+        "SELECT ?paper ?title WHERE {\n" +
+        "<" + authorUri + "> rucd:publication ?paper . \n" +
+        "?paper rucd:title ?title" +
+        "}";
+    query('http://localhost:3030/ucdrr/query', queryString, "JSON", displayPapers);
+    function displayPapers(data) {
+        console.log(data);
+        var container = $('#papers');
+        container.html('');
+        container.html('');
+        var list = $("<div></div>");
+        container.append(list);
+        list.addClass("list-group");
+        var bindings = data.results.bindings;
+        for(var i in bindings) {
+            var row = bindings[i];
+            var item = $("<a></a>");
+            item.addClass("list-group-item");
+            item.attr("href", "#");
+            item.attr("id", row.paper.value);
+            //item.click(function(args){clickFunction($(args.target).attr("id"))});
+            item.append(row.title.value);
+            list.append(item);
+        }
     }
 }

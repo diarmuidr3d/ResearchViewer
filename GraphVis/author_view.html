@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Research Viewer</title>
+    <title>View an author's connections</title>
     <link rel="stylesheet" type="text/css" href="style.css">
     <script src="sigma_js/sigma.min.js"></script>
     <script src="sparql/sparql.js"></script>
@@ -26,16 +26,44 @@
         </div>
         <div id="navbar" class="navbar-collapse collapse">
             <ul class="nav navbar-nav">
-                <li class="active"><a href="#">Home</a></li>
-                <li><a href="author_view.html">Author View</a></li>
+                <li><a href="#">Home</a></li>
+                <li class="active"><a href="author_view.html">Author View</a></li>
                 <li><a href="#">Path View</a></li>
             </ul>
         </div><!--/.nav-collapse -->
     </div><!--/.container-fluid -->
 </nav>
+<div class="container-fluid">
+<div class="row">
+    <div class="row" id="searchArea">
+        <div class="col-md-6">
+            <form role="form" id="authorForm">
+                <div class="form-group">
+                    <label for="firstName">First Name:</label>
+                    <input type="text" class="form-control" id="firstName" placeholder="Enter a first name to search for">
+                </div>
+                <div class="form-group">
+                    <label for="lastName">Last Name:</label>
+                    <input type="text" class="form-control" id="lastName" placeholder="Enter a last name to search for">
+                </div>
+                <button type="button" class="btn btn-default" onclick="findAuthorForm('authorForm','graph',displayAuthor)">Submit</button>
+            </form>
+        </div>
+        <div class="col-md-6" id="searchResults">
 
-<!--//    displayAuthor("http://researchrepository.ucd.ie/author/CunninghamPádraig");-->
-<!--//    displayCoAuthorPath("http://researchrepository.ucd.ie/author/CunninghamPádraig","http://researchrepository.ucd.ie/author/GilchristMD");-->
-
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <button id="hideSearch" type="button" class="btn btn-default btn-block" onclick="hideSearch()">Hide</button>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-8" id="graph">
+    </div>
+    <div class="col-md-4" id="papers"></div>
+</div>
+    </div>
 </body>
 </html>
