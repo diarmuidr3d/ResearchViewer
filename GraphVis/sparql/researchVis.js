@@ -55,7 +55,6 @@ function displayAuthor(uri) {
             "?coauthor rucd:cooperatesWith ?coauthor2 . " +
             "?coauthor2 rucd:cooperatesWith <" + uri + "> . " +
             "} ";
-        console.log(directQuery);
         query('http://localhost:3030/ucdrr/query', directQuery, "JSON", addDirectCoAuthorLinks);
         //var inDirectQuery = prefixes.RDF + prefixes.RUCD + "SELECT ?coauthor ?link ?coauthor2 ?firstName ?lastName " +
         //    "WHERE { " +
@@ -286,7 +285,7 @@ function displayCoAuthorPath(fromUri, toUri) {
                     getAuthorName(nodeId, graph);
                 }
                 var edgeId = previous + nodeId;
-                console.log(graph.edges(edgeId));
+                //console.log(graph.edges(edgeId));
                 if(typeof graph.edges(edgeId) === 'undefined') {
                     graph.addEdge({
                         id: edgeId,
@@ -326,15 +325,13 @@ function getAuthorName(uri, graph) {
         graph.nodes(uri)["label"] =  row.firstName.value + ", " + row.lastName.value;
     }
 }
-function findAuthorForm(formId, displayId, authorClickFunction) {
-    //var form = $('#'+formId);
-    //console.log(form);
-    //form.slideUp();
-    var firstName = $('input[id=firstName]');
-    var lastName = $('input[id=lastName]');
-    findAuthor(firstName.val(),lastName.val(),displayId, authorClickFunction);
+function findAuthorForm(formId, resultsId, displayId, authorClickFunction) {
+    console.log(authorClickFunction);
+    var firstName = $('#'+formId+' > div > .firstName');
+    var lastName = $('#'+formId+' > div > .lastName');
+    findAuthor(firstName.val(),lastName.val(),resultsId,displayId, authorClickFunction);
 }
-function findAuthor(firstName, lastname, displayId, clickFunction) {
+function findAuthor(firstName, lastname, resultsId, displayId, clickFunction) {
     var queryString = prefixes.RUCD + "SELECT ?author ?firstName ?lastName WHERE {\n";
     if(typeof firstName != 'undefined' && firstName != "") {
         queryString += '    ?author rucd:firstName "' + firstName + '" . \n';
@@ -348,7 +345,7 @@ function findAuthor(firstName, lastname, displayId, clickFunction) {
     query('http://localhost:3030/ucdrr/query', queryString, "JSON", displayAuthorResults);
 
     function displayAuthorResults(data) {
-        var container = $("#searchResults");
+        var container = $("#" + resultsId);
         container.append("Select an author to continue:");
         var list = $("<div></div>");
         container.append(list);
@@ -360,7 +357,8 @@ function findAuthor(firstName, lastname, displayId, clickFunction) {
             item.addClass("list-group-item");
             item.attr("href", "#");
             item.attr("id", row.author.value);
-            item.click(function(args){clickFunction($(args.target).attr("id"))});
+            console.log(clickFunction);
+            item.click(function(args){clickFunction($(args.target).attr("id"), resultsId)});
             item.append(row.firstName.value + ", " + row.lastName.value);
             list.append(item);
         }
@@ -378,14 +376,13 @@ function hideSearch() {
     }
 }
 function getPapersAuthored(authorUri) {
-    var queryString = "PREFIX rucd: <http://diarmuidr3d.github.io/swrc_ont/swrc_UCD.owl#>\n" +
+    var queryString = prefixes.RUCD +
         "SELECT ?paper ?title WHERE {\n" +
         "<" + authorUri + "> rucd:publication ?paper . \n" +
         "?paper rucd:title ?title" +
         "}";
     query('http://localhost:3030/ucdrr/query', queryString, "JSON", displayPapers);
     function displayPapers(data) {
-        console.log(data);
         var container = $('#papers');
         container.html('');
         container.html('');
@@ -403,5 +400,21 @@ function getPapersAuthored(authorUri) {
             item.append(row.title.value);
             list.append(item);
         }
+    }
+}
+var pathAuthors={};
+function pathClick(uri, authorNum) {
+    pathAuthors[authorNum] = uri;
+    console.log(pathAuthors);
+    console.log(pathAuthors.length);
+    if(Object.keys(pathAuthors).length > 1) {
+        var authArr = [];
+        var j = 0;
+        for(var i in pathAuthors) {
+            authArr[j] = pathAuthors[i];
+            j++;
+        }
+        console.log(authArr);
+        displayCoAuthorPath(authArr[0],authArr[1]);
     }
 }
