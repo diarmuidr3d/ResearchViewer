@@ -85,7 +85,6 @@ function displayAuthor(uri) {
         query('http://localhost:3030/ucdrr/query', queryString, "JSON", addCoAuthors);
     }
     function addDirectCoAuthorLinks(data) {
-        //console.log(data);
         var bindings = data.results.bindings;
         for(var rowId in bindings) {
             var row = bindings[rowId];
@@ -326,7 +325,6 @@ function getAuthorName(uri, graph) {
     }
 }
 function findAuthorForm(formId, resultsId, displayId, authorClickFunction) {
-    console.log(authorClickFunction);
     var firstName = $('#'+formId+' > div > .firstName');
     var lastName = $('#'+formId+' > div > .lastName');
     findAuthor(firstName.val(),lastName.val(),resultsId,displayId, authorClickFunction);
@@ -357,7 +355,6 @@ function findAuthor(firstName, lastname, resultsId, displayId, clickFunction) {
             item.addClass("list-group-item");
             item.attr("href", "#");
             item.attr("id", row.author.value);
-            console.log(clickFunction);
             item.click(function(args){clickFunction($(args.target).attr("id"), resultsId)});
             item.append(row.firstName.value + ", " + row.lastName.value);
             list.append(item);
@@ -405,8 +402,6 @@ function getPapersAuthored(authorUri) {
 var pathAuthors={};
 function pathClick(uri, authorNum) {
     pathAuthors[authorNum] = uri;
-    console.log(pathAuthors);
-    console.log(pathAuthors.length);
     if(Object.keys(pathAuthors).length > 1) {
         var authArr = [];
         var j = 0;
@@ -414,7 +409,6 @@ function pathClick(uri, authorNum) {
             authArr[j] = pathAuthors[i];
             j++;
         }
-        console.log(authArr);
         displayCoAuthorPath(authArr[0],authArr[1]);
     }
 }

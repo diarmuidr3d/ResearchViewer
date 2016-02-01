@@ -41,13 +41,13 @@
                     <form role="form" id="authorForm">
                         <div class="form-group">
                             <label for="firstName">First Name:</label>
-                            <input type="text" class="form-control" id="firstName" placeholder="Enter a first name to search for">
+                            <input type="text" class="form-control firstName" id="firstName" placeholder="Enter a first name to search for">
                         </div>
                         <div class="form-group">
                             <label for="lastName">Last Name:</label>
-                            <input type="text" class="form-control" id="lastName" placeholder="Enter a last name to search for">
+                            <input type="text" class="form-control lastName" id="lastName" placeholder="Enter a last name to search for">
                         </div>
-                        <button type="button" class="btn btn-default" onclick="findAuthorForm('authorForm','graph',displayAuthor)">Submit</button>
+                        <button type="button" class="btn btn-default" onclick="findAuthorForm('authorForm', 'searchResults','graph',displayAuthor)">Submit</button>
                     </form>
                 </div>
                 <div class="col-md-6" id="searchResults">
