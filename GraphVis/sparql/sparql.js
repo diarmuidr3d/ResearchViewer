@@ -6,7 +6,6 @@ var prefixes = [];
 prefixes.RDF = "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> ";
 
 function query(endpoint, query, format, successFunction) {
-    console.log(query);
     var encodedQuery = encodeURI(query);
     encodedQuery = encodedQuery.replace(/#/g,'%23');
     encodedQuery = encodedQuery.replace(/\+/g,'%2B');

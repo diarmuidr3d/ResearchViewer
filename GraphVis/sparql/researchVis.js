@@ -20,6 +20,7 @@ function createSigma() {
 }
 
 function displayAuthor(uri) {
+    hideSearch();
     getPapersAuthored(uri);
     $('#'+domElement).html('');
     var mySigma = createSigma();
@@ -35,19 +36,57 @@ function displayAuthor(uri) {
     //setTimeout(getAuthorName, 0);
     setTimeout(getCoAuthors, 0);
     getAuthorName(uri, graph);
+    var mouseOverPapers = {};
+    mySigma.bind('overNode', function(e) {
+        var coAuthUri = e.data.node.id;
+        if(coAuthUri in mouseOverPapers) {
+            setAsActive(mouseOverPapers[coAuthUri]);
+        } else {
+            getCoauthoredPapers(coAuthUri,highlightSharedPapers);
+        }
+        function highlightSharedPapers(data) {
+            var bindings = data.results.bindings;
+            mouseOverPapers[coAuthUri] = bindings;
+            setAsActive(bindings);
+        }
+        function setAsActive(uriArray) {
+            for (var rowId in uriArray) {
+                var paper = uriArray[rowId].paper.value;
+                document.getElementById(paper).className += " active";
+            }
+        }
+    });
+    mySigma.bind('outNode', function(e) {
+        var coAuthUri = e.data.node.id;
+        if(coAuthUri in mouseOverPapers) {
+            setAsInactive(mouseOverPapers[coAuthUri]);
+        } else {
+            getCoauthoredPapers(coAuthUri,unHighlightSharedPapers);
+        }
+        function unHighlightSharedPapers(data) {
+            var bindings = data.results.bindings;
+            setAsInactive(bindings);
+        }
+        function setAsInactive(uriArray){
+            for (var rowId in uriArray) {
+                var paper = uriArray[rowId].paper.value;
+                document.getElementById(paper).className = document.getElementById(paper).className.replace(/\bactive\b/,'');
+            }
+        }
+    });
     mySigma.bind('clickNode', function(e) {
         var nodeId = e.data.node.id;
         if(nodeId != uri) {
-            //var div = document.getElementById(domElement);
-            //var parent = div.parentNode;
-            //parent.removeChild(div);
-            //var newDiv = document.createElement('div');
-            //newDiv.setAttribute('id',domElement);
-            //parent.appendChild(newDiv);
             displayAuthor(nodeId);
         }
     });
-
+    function getCoauthoredPapers(coAuthUri, callback) {
+        var queryString = prefixes.RUCD + "SELECT ?paper WHERE {\n" +
+            "<" + uri + "> rucd:publication ?paper .\n" +
+            "<" + coAuthUri + "> rucd:publication ?paper .\n" +
+            "}";
+        query('http://localhost:3030/ucdrr/query', queryString, "JSON", callback);
+    }
     function getCoAuthorLinks() {
         var directQuery = prefixes.RDF + prefixes.RUCD + "SELECT ?coauthor ?coauthor2  " +
             "WHERE { " +
@@ -222,7 +261,7 @@ function displayCoAuthorPath(fromUri, toUri) {
         }
         selectString += 'STR(?coauthor' + i + ')) AS ?link)\n';
         queryString += "	?coauthor" + i + " rucd:cooperatesWith <" + toUri + "> .\n" +
-            "}";
+        "}";
         query('http://localhost:3030/ucdrr/query', selectString + queryString, "JSON", pathResult);
 
         function pathResult(data) {
@@ -338,8 +377,8 @@ function findAuthor(firstName, lastname, resultsId, displayId, clickFunction) {
         queryString += '    ?author rucd:lastName "' + lastname + '" . \n';
     }
     queryString += "    ?author rucd:firstName ?firstName . \n" +
-        "   ?author rucd:lastName ?lastName . \n" +
-        "}";
+    "   ?author rucd:lastName ?lastName . \n" +
+    "}";
     query('http://localhost:3030/ucdrr/query', queryString, "JSON", displayAuthorResults);
 
     function displayAuthorResults(data) {
@@ -366,10 +405,10 @@ function hideSearch() {
     var hideButton = $("#hideSearch");
     if(search.is(":visible")) {
         search.slideUp();
-        hideButton.html('Unhide');
+        hideButton.html('<span class="glyphicon glyphicon-chevron-down"></span>Unhide Search');
     } else {
         search.slideDown();
-        hideButton.html('Hide');
+        hideButton.html('<span class="glyphicon glyphicon-chevron-up"></span>Hide Search');
     }
 }
 function getPapersAuthored(authorUri) {
@@ -410,5 +449,6 @@ function pathClick(uri, authorNum) {
             j++;
         }
         displayCoAuthorPath(authArr[0],authArr[1]);
+        hideSearch();
     }
 }

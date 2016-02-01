@@ -35,7 +35,7 @@
 </nav>
 <div class="container-fluid">
     <div class="row" id="searchArea">
-        <div class="row">
+        <div class="col-md-12">
             <div class="col-md-6">
                 <form role="form" id="authorForm1">
                     <div class="form-group">
@@ -51,7 +51,7 @@
             </div>
             <div class="col-md-6" id="searchResults1"></div>
         </div>
-        <div class="row">
+        <div class="col-md-12">
             <div class="col-md-6">
                 <form role="form" id="authorForm2">
                     <div class="form-group">
@@ -70,13 +70,20 @@
     </div>
     <div class="row">
         <div class="col-md-12">
-            <button id="hideSearch" type="button" class="btn btn-default btn-block" onclick="hideSearch()">Hide</button>
+            <button id="hideSearch" type="button" class="btn btn-default btn-block" onclick="hideSearch()">
+                <span class="glyphicon glyphicon-chevron-up"></span>Hide Search
+            </button>
         </div>
     </div>
     <div class="row">
-        <div class="col-md-8" id="graph">
+        <div class="col-md-12" id="graph">
         </div>
-        <div class="col-md-4" id="papers"></div>
+    </div>
+    <div class="navbar navbar-default ">
+        <div class="container">
+            <p class="navbar-text pull-left">UCD Research Viewer by Diarmuid Ryan.
+            </p>
+        </div>
     </div>
 </body>
 </html>
