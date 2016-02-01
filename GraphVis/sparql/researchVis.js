@@ -50,6 +50,8 @@ function displayAuthor(uri) {
             setAsActive(bindings);
         }
         function setAsActive(uriArray) {
+            var papers = $('#papers');
+            papers.animate({scrollTop: papers.scrollTop() + $(document.getElementById(uriArray[0].paper.value)).position().top}, 'slow');
             for (var rowId in uriArray) {
                 var paper = uriArray[rowId].paper.value;
                 document.getElementById(paper).className += " active";
@@ -133,8 +135,9 @@ function displayAuthor(uri) {
                 id: coauthor1+coauthor2,
                 source: coauthor1,
                 target: coauthor2,
-                color: "rgba(255,0,0,0.05)",
-                size: 1
+                color: "rgba(255,0,0,0.09)",
+                size: 1,
+                type:'curve'
             });
         }
     }
@@ -206,7 +209,8 @@ function displayAuthor(uri) {
                 id: uri+coauthor,
                 source: uri,
                 target: coauthor,
-                size: size
+                size: size,
+                type:'curve'
             });
         }
         setTimeout(getCoAuthorLinks, 0);
@@ -288,6 +292,7 @@ function displayCoAuthorPath(fromUri, toUri) {
         }
     }
     function drawPathGraph(paths) {
+        console.log(paths);
         var mySigma = createSigma();
         var graph = mySigma.graph;
         graph.addNode({
@@ -330,7 +335,8 @@ function displayCoAuthorPath(fromUri, toUri) {
                         source: previous,
                         target: nodeId,
                         //color: "rgba(255,0,0,0.05)",
-                        size: 1
+                        size: 1,
+                        type:'curve'
                     });
                 }
                 previous = nodeId;
@@ -343,9 +349,11 @@ function displayCoAuthorPath(fromUri, toUri) {
                     source: toUri,
                     target: previous,
                     //color: "rgba(255,0,0,0.05)",
-                    size: 1
+                    size: 1,
+                    type:'curve'
                 });
             }
+            previous = fromUri;
         }
         //finish(mySigma);
         mySigma.refresh();
