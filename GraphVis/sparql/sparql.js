@@ -4,17 +4,23 @@
 
 var prefixes = [];
 prefixes.RDF = "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> ";
+var endpoint;
+var returnFormat = "JSON";
 
-function query(endpoint, query, format, successFunction) {
-    var encodedQuery = encodeURI(query);
-    encodedQuery = encodedQuery.replace(/#/g,'%23');
-    encodedQuery = encodedQuery.replace(/\+/g,'%2B');
-    var url = endpoint + '?query=' + encodedQuery + '&output=' + format;
-    $.ajax({
-        dataType: "jsonp",
-        url: url,
-        success: successFunction
-    });
+function query(query, successFunction) {
+    if(typeof endpoint === 'undefined' || endpoint == "" || typeof returnFormat === 'undefined' || returnFormat == "") {
+        console.log("Query could not be completed because endpoint or return format are not defined");
+    } else {
+        var encodedQuery = encodeURI(query);
+        encodedQuery = encodedQuery.replace(/#/g, '%23');
+        encodedQuery = encodedQuery.replace(/\+/g, '%2B');
+        var url = endpoint + '?query=' + encodedQuery + '&output=' + returnFormat;
+        $.ajax({
+            dataType: "jsonp",
+            url: url,
+            success: successFunction
+        });
+    }
 }
 
 //function update(endpoint, query) {

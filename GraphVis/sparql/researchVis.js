@@ -1,6 +1,7 @@
 prefixes.RUCD = "PREFIX rucd: <http://diarmuidr3d.github.io/swrc_ont/swrc_UCD.owl#> ";
 
 var domElement = 'graph';
+endpoint = 'http://localhost:3030/ucdrr/query';
 
 function createSigma() {
     $('#'+domElement).html('');
@@ -33,7 +34,6 @@ function displayAuthor(uri) {
         color: '#0f0',
         size: authorSize
     });
-    //setTimeout(getAuthorName, 0);
     setTimeout(getCoAuthors, 0);
     getAuthorName(uri, graph);
     var mouseOverPapers = {};
@@ -87,7 +87,7 @@ function displayAuthor(uri) {
             "<" + uri + "> rucd:publication ?paper .\n" +
             "<" + coAuthUri + "> rucd:publication ?paper .\n" +
             "}";
-        query('http://localhost:3030/ucdrr/query', queryString, "JSON", callback);
+        query(queryString, callback);
     }
     function getCoAuthorLinks() {
         var directQuery = prefixes.RDF + prefixes.RUCD + "SELECT ?coauthor ?coauthor2  " +
@@ -96,7 +96,7 @@ function displayAuthor(uri) {
             "?coauthor rucd:cooperatesWith ?coauthor2 . " +
             "?coauthor2 rucd:cooperatesWith <" + uri + "> . " +
             "} ";
-        query('http://localhost:3030/ucdrr/query', directQuery, "JSON", addDirectCoAuthorLinks);
+        query(directQuery, addDirectCoAuthorLinks);
         //var inDirectQuery = prefixes.RDF + prefixes.RUCD + "SELECT ?coauthor ?link ?coauthor2 ?firstName ?lastName " +
         //    "WHERE { " +
         //    "<" + uri + "> rucd:cooperatesWith ?coauthor . " +
@@ -110,7 +110,7 @@ function displayAuthor(uri) {
         //    "?link rucd:lastName ?lastName . " +
         //    "} ";
         //console.log(inDirectQuery);
-        //query('http://localhost:3030/ucdrr/query', inDirectQuery, "JSON", addInDirectCoAuthorLinks);
+        //query(inDirectQuery, addInDirectCoAuthorLinks);
         finish(mySigma);
     }
     function getCoAuthors() {
@@ -123,7 +123,7 @@ function displayAuthor(uri) {
             "?coauthor rucd:lastName ?lastName . " +
             "} " +
             "GROUP BY ?coauthor ?firstName ?lastName ";
-        query('http://localhost:3030/ucdrr/query', queryString, "JSON", addCoAuthors);
+        query(queryString, addCoAuthors);
     }
     function addDirectCoAuthorLinks(data) {
         var bindings = data.results.bindings;
@@ -235,12 +235,10 @@ function displayCoAuthorPath(fromUri, toUri) {
     var lastPathLength = 0;
     anyPath();
     function anyPath() {
-        query('http://localhost:3030/ucdrr/query',
-            prefixes.RUCD + "SELECT ?mid WHERE {\n" +
+        query(prefixes.RUCD + "SELECT ?mid WHERE {\n" +
             "	<" + fromUri + "> rucd:cooperatesWith+ ?mid .\n" +
             "	?mid rucd:cooperatesWith <" + toUri + "> .\n" +
-            "}",
-            "JSON", resultFunc);
+            "}", resultFunc);
         function resultFunc(data) {
             var bindings = data.results.bindings;
             if(bindings.length > 0) {
@@ -266,7 +264,7 @@ function displayCoAuthorPath(fromUri, toUri) {
         selectString += 'STR(?coauthor' + i + ')) AS ?link)\n';
         queryString += "	?coauthor" + i + " rucd:cooperatesWith <" + toUri + "> .\n" +
             "}";
-        query('http://localhost:3030/ucdrr/query', selectString + queryString, "JSON", pathResult);
+        query(selectString + queryString, pathResult);
 
         function pathResult(data) {
             var bindings = data.results.bindings;
@@ -365,7 +363,7 @@ function getAuthorName(uri, graph) {
         "<" + uri + "> rucd:firstName ?firstName . " +
         "<" + uri + "> rucd:lastName ?lastName . " +
         "} ";
-    query('http://localhost:3030/ucdrr/query', queryString, "JSON", addAuthor);
+    query(queryString, addAuthor);
     function addAuthor(data) {
         var row = data.results.bindings[0];
         graph.nodes(uri)["label"] =  row.lastName.value + ", " + row.firstName.value;
@@ -387,7 +385,7 @@ function findAuthor(firstName, lastname, resultsId, displayId, clickFunction) {
     queryString += "    ?author rucd:firstName ?firstName . \n" +
         "   ?author rucd:lastName ?lastName . \n" +
         "}";
-    query('http://localhost:3030/ucdrr/query', queryString, "JSON", displayAuthorResults);
+    query(queryString, displayAuthorResults);
 
     function displayAuthorResults(data) {
         var container = $("#" + resultsId);
@@ -425,25 +423,25 @@ function getPapersAuthored(authorUri, callback) {
         "<" + authorUri + "> rucd:publication ?paper . \n" +
         "?paper rucd:title ?title" +
         "}";
-    query('http://localhost:3030/ucdrr/query', queryString, "JSON", callback);
-    function displayPapers(data) {
-        var container = $('#papers');
-        container.html('');
-        container.html('');
-        var list = $("<div></div>");
-        container.append(list);
-        list.addClass("list-group");
-        var bindings = data.results.bindings;
-        for(var i in bindings) {
-            var row = bindings[i];
-            var item = $("<a></a>");
-            item.addClass("list-group-item");
-            item.attr("href", "#");
-            item.attr("id", row.paper.value);
-            //item.click(function(args){clickFunction($(args.target).attr("id"))});
-            item.append(row.title.value);
-            list.append(item);
-        }
+    query(queryString, callback);
+}
+function displayPapers(data) {
+    var container = $('#papers');
+    container.html('');
+    container.html('');
+    var list = $("<div></div>");
+    container.append(list);
+    list.addClass("list-group");
+    var bindings = data.results.bindings;
+    for(var i in bindings) {
+        var row = bindings[i];
+        var item = $("<a></a>");
+        item.addClass("list-group-item");
+        item.attr("href", "#");
+        item.attr("id", row.paper.value);
+        //item.click(function(args){clickFunction($(args.target).attr("id"))});
+        item.append(row.title.value);
+        list.append(item);
     }
 }
 var pathAuthors={};
@@ -509,7 +507,7 @@ function getPaperName(paperUri, graph) {
         "WHERE { " +
         "<" + paperUri + "> rucd:title ?title . " +
         "} ";
-    query('http://localhost:3030/ucdrr/query', queryString, "JSON", addAuthor);
+    query(queryString, addAuthor);
     function addAuthor(data) {
         var row = data.results.bindings[0];
         graph.nodes(paperUri)["label"] =  row.title.value;
@@ -522,7 +520,7 @@ function getPaperAuthors(paperUri, callback) {
         "?author rucd:firstName ?firstName . " +
         "?author rucd:lastName ?lastName . " +
         "}";
-    query('http://localhost:3030/ucdrr/query', queryString, "JSON", callback);
+    query(queryString, callback);
 }
 function displayBipartiteGraphPaper(paperUri) {
     hideSearch(true);
