@@ -3,6 +3,7 @@ prefixes.RUCD = "PREFIX rucd: <http://diarmuidr3d.github.io/swrc_ont/swrc_UCD.ow
 var domElement = 'graph';
 
 function createSigma() {
+    $('#'+domElement).html('');
     return new sigma({
         renderers: [{
             container: document.getElementById(domElement),
@@ -20,9 +21,8 @@ function createSigma() {
 }
 
 function displayAuthor(uri) {
-    hideSearch();
-    getPapersAuthored(uri);
-    $('#'+domElement).html('');
+    hideSearch(true);
+    getPapersAuthored(uri, displayPapers);
     var mySigma = createSigma();
     var graph = mySigma.graph;
     var authorSize = 2;
@@ -265,7 +265,7 @@ function displayCoAuthorPath(fromUri, toUri) {
         }
         selectString += 'STR(?coauthor' + i + ')) AS ?link)\n';
         queryString += "	?coauthor" + i + " rucd:cooperatesWith <" + toUri + "> .\n" +
-        "}";
+            "}";
         query('http://localhost:3030/ucdrr/query', selectString + queryString, "JSON", pathResult);
 
         function pathResult(data) {
@@ -368,7 +368,7 @@ function getAuthorName(uri, graph) {
     query('http://localhost:3030/ucdrr/query', queryString, "JSON", addAuthor);
     function addAuthor(data) {
         var row = data.results.bindings[0];
-        graph.nodes(uri)["label"] =  row.firstName.value + ", " + row.lastName.value;
+        graph.nodes(uri)["label"] =  row.lastName.value + ", " + row.firstName.value;
     }
 }
 function findAuthorForm(formId, resultsId, displayId, authorClickFunction) {
@@ -385,8 +385,8 @@ function findAuthor(firstName, lastname, resultsId, displayId, clickFunction) {
         queryString += '    ?author rucd:lastName "' + lastname + '" . \n';
     }
     queryString += "    ?author rucd:firstName ?firstName . \n" +
-    "   ?author rucd:lastName ?lastName . \n" +
-    "}";
+        "   ?author rucd:lastName ?lastName . \n" +
+        "}";
     query('http://localhost:3030/ucdrr/query', queryString, "JSON", displayAuthorResults);
 
     function displayAuthorResults(data) {
@@ -403,15 +403,15 @@ function findAuthor(firstName, lastname, resultsId, displayId, clickFunction) {
             item.attr("href", "#");
             item.attr("id", row.author.value);
             item.click(function(args){clickFunction($(args.target).attr("id"), resultsId)});
-            item.append(row.firstName.value + ", " + row.lastName.value);
+            item.append(row.lastName.value + ", " + row.firstName.value);
             list.append(item);
         }
     }
 }
-function hideSearch() {
+function hideSearch(override) {
     var search = $("#searchArea");
     var hideButton = $("#hideSearch");
-    if(search.is(":visible")) {
+    if(override || search.is(":visible")) {
         search.slideUp();
         hideButton.html('<span class="glyphicon glyphicon-chevron-down"></span>Unhide Search');
     } else {
@@ -419,13 +419,13 @@ function hideSearch() {
         hideButton.html('<span class="glyphicon glyphicon-chevron-up"></span>Hide Search');
     }
 }
-function getPapersAuthored(authorUri) {
+function getPapersAuthored(authorUri, callback) {
     var queryString = prefixes.RUCD +
         "SELECT ?paper ?title WHERE {\n" +
         "<" + authorUri + "> rucd:publication ?paper . \n" +
         "?paper rucd:title ?title" +
         "}";
-    query('http://localhost:3030/ucdrr/query', queryString, "JSON", displayPapers);
+    query('http://localhost:3030/ucdrr/query', queryString, "JSON", callback);
     function displayPapers(data) {
         var container = $('#papers');
         container.html('');
@@ -458,5 +458,113 @@ function pathClick(uri, authorNum) {
         }
         displayCoAuthorPath(authArr[0],authArr[1]);
         hideSearch();
+    }
+}
+function displayBipartiteGraphAuthor(authorUri) {
+    hideSearch(true);
+    var mySigma = createSigma();
+    var graph = mySigma.graph;
+    graph.addNode({
+        id: authorUri,
+        x:0,
+        y:0,
+        color: '#0f0',
+        size: 1
+    });
+    mySigma.bind('clickNode', function(e) {
+        var nodeId = e.data.node.id;
+        if(nodeId != authorUri) {
+            displayBipartiteGraphPaper(nodeId);
+        }
+    });
+    getAuthorName(authorUri, graph);
+    getPapersAuthored(authorUri, addPapers);
+    function addPapers(data) {
+        var bindings = data.results.bindings;
+        var len = bindings.length;
+        var circleRadius = 10;
+        for(var i = 0; i < len; i++) {
+            var row = bindings[i];
+            graph.addNode({
+                id: row.paper.value,
+                x: circleRadius * Math.cos(2 * Math.PI * i / len),
+                y: circleRadius * Math.sin(2 * Math.PI * i / len),
+                color: '#00f',
+                size: 1,
+                label: row.title.value
+            });
+            graph.addEdge({
+                id: authorUri+row.paper.value,
+                source: authorUri,
+                target: row.paper.value,
+                size: 1,
+                type:'curve'
+            })
+        }
+        mySigma.refresh();
+    }
+}
+function getPaperName(paperUri, graph) {
+    var queryString = prefixes.RDF + prefixes.RUCD + "SELECT ?title " +
+        "WHERE { " +
+        "<" + paperUri + "> rucd:title ?title . " +
+        "} ";
+    query('http://localhost:3030/ucdrr/query', queryString, "JSON", addAuthor);
+    function addAuthor(data) {
+        var row = data.results.bindings[0];
+        graph.nodes(paperUri)["label"] =  row.title.value;
+    }
+}
+function getPaperAuthors(paperUri, callback) {
+    var queryString = prefixes.RUCD +
+        "SELECT ?author ?firstName ?lastName WHERE {\n" +
+        "?author rucd:publication <" + paperUri + "> . \n" +
+        "?author rucd:firstName ?firstName . " +
+        "?author rucd:lastName ?lastName . " +
+        "}";
+    query('http://localhost:3030/ucdrr/query', queryString, "JSON", callback);
+}
+function displayBipartiteGraphPaper(paperUri) {
+    hideSearch(true);
+    var mySigma = createSigma();
+    var graph = mySigma.graph;
+    graph.addNode({
+        id: paperUri,
+        x:0,
+        y:0,
+        color: '#00f',
+        size: 1
+    });
+    mySigma.bind('clickNode', function(e) {
+        var nodeId = e.data.node.id;
+        if(nodeId != paperUri) {
+            displayBipartiteGraphAuthor(nodeId);
+        }
+    });
+    getPaperName(paperUri, graph);
+    getPaperAuthors(paperUri, addAuthors);
+    function addAuthors(data) {
+        var bindings = data.results.bindings;
+        var len = bindings.length;
+        var circleRadius = 10;
+        for(var i = 0; i < len; i++) {
+            var row = bindings[i];
+            graph.addNode({
+                id: row.author.value,
+                x: circleRadius * Math.cos(2 * Math.PI * i / len),
+                y: circleRadius * Math.sin(2 * Math.PI * i / len),
+                color: '#0f0',
+                size: 1,
+                label: row.lastName.value + ", " + row.firstName.value
+            });
+            graph.addEdge({
+                id: paperUri+row.author.value,
+                source: paperUri,
+                target: row.author.value,
+                size: 1,
+                type:'curve'
+            })
+        }
+        mySigma.refresh();
     }
 }
