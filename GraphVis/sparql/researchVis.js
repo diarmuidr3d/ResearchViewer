@@ -1,7 +1,7 @@
 prefixes.RUCD = "PREFIX rucd: <http://diarmuidr3d.github.io/swrc_ont/swrc_UCD.owl#> ";
 
 var domElement = 'graph';
-endpoint = 'http://localhost:3030/ucdrr/query';
+endpoint = 'http://localhost:3030/ucdrr2/query';
 
 function createSigma() {
     $('#'+domElement).html('');
@@ -389,6 +389,7 @@ function findAuthor(firstName, lastname, resultsId, displayId, clickFunction) {
 
     function displayAuthorResults(data) {
         var container = $("#" + resultsId);
+        container.html('');
         container.append("Select an author to continue:");
         var list = $("<div></div>");
         container.append(list);
@@ -419,15 +420,14 @@ function hideSearch(override) {
 }
 function getPapersAuthored(authorUri, callback) {
     var queryString = prefixes.RUCD +
-        "SELECT ?paper ?title WHERE {\n" +
-        "<" + authorUri + "> rucd:publication ?paper . \n" +
-        "?paper rucd:title ?title" +
+        "SELECT ?id ?label WHERE {\n" +
+        "<" + authorUri + "> rucd:publication ?id . \n" +
+        "?id rucd:title ?label" +
         "}";
     query(queryString, callback);
 }
 function displayPapers(data) {
     var container = $('#papers');
-    container.html('');
     container.html('');
     var list = $("<div></div>");
     container.append(list);
@@ -438,9 +438,9 @@ function displayPapers(data) {
         var item = $("<a></a>");
         item.addClass("list-group-item");
         item.attr("href", "#");
-        item.attr("id", row.paper.value);
+        item.attr("id", row.id.value);
         //item.click(function(args){clickFunction($(args.target).attr("id"))});
-        item.append(row.title.value);
+        item.append(row.label.value);
         list.append(item);
     }
 }
@@ -478,28 +478,7 @@ function displayBipartiteGraphAuthor(authorUri) {
     getAuthorName(authorUri, graph);
     getPapersAuthored(authorUri, addPapers);
     function addPapers(data) {
-        var bindings = data.results.bindings;
-        var len = bindings.length;
-        var circleRadius = 10;
-        for(var i = 0; i < len; i++) {
-            var row = bindings[i];
-            graph.addNode({
-                id: row.paper.value,
-                x: circleRadius * Math.cos(2 * Math.PI * i / len),
-                y: circleRadius * Math.sin(2 * Math.PI * i / len),
-                color: '#00f',
-                size: 1,
-                label: row.title.value
-            });
-            graph.addEdge({
-                id: authorUri+row.paper.value,
-                source: authorUri,
-                target: row.paper.value,
-                size: 1,
-                type:'curve'
-            })
-        }
-        mySigma.refresh();
+        addNodesCircle(authorUri, data, mySigma, 10, '#00f');
     }
 }
 function getPaperName(paperUri, graph) {
@@ -515,11 +494,12 @@ function getPaperName(paperUri, graph) {
 }
 function getPaperAuthors(paperUri, callback) {
     var queryString = prefixes.RUCD +
-        "SELECT ?author ?firstName ?lastName WHERE {\n" +
-        "?author rucd:publication <" + paperUri + "> . \n" +
-        "?author rucd:firstName ?firstName . " +
-        "?author rucd:lastName ?lastName . " +
+        "SELECT ?id (CONCAT(STR(?lastName), ', ', STR(?firstName)) AS ?label) WHERE {\n" +
+        "?id rucd:publication <" + paperUri + "> . \n" +
+        "?id rucd:firstName ?firstName . " +
+        "?id rucd:lastName ?lastName . " +
         "}";
+    console.log(queryString);
     query(queryString, callback);
 }
 function displayBipartiteGraphPaper(paperUri) {
@@ -542,27 +522,47 @@ function displayBipartiteGraphPaper(paperUri) {
     getPaperName(paperUri, graph);
     getPaperAuthors(paperUri, addAuthors);
     function addAuthors(data) {
-        var bindings = data.results.bindings;
-        var len = bindings.length;
-        var circleRadius = 10;
-        for(var i = 0; i < len; i++) {
-            var row = bindings[i];
-            graph.addNode({
-                id: row.author.value,
-                x: circleRadius * Math.cos(2 * Math.PI * i / len),
-                y: circleRadius * Math.sin(2 * Math.PI * i / len),
-                color: '#0f0',
-                size: 1,
-                label: row.lastName.value + ", " + row.firstName.value
-            });
-            graph.addEdge({
-                id: paperUri+row.author.value,
-                source: paperUri,
-                target: row.author.value,
-                size: 1,
-                type:'curve'
-            })
-        }
-        mySigma.refresh();
+        addNodesCircle(paperUri, data, mySigma, 10, '#0f0');
     }
+}
+/**
+ * This function takes the id of a node (from URI) and the result of a sparql query which
+ * has id, label and an optional weight as it's headers and creates a new node for each of these ids,
+ * connecting them to the original node (the edge and node size are set as the weight)
+ * @param fromUri The id of an existing node to which all the nodes will be connected
+ * @param toNodes the result of the sparql query which has id, label and an optional weight as it's headers
+ * @param sigmaInstance The instance of sigma to which the nodes should be added
+ * @param radius The radius of the circle to be displayed
+ * @param nodeColour the colour to assign to the new nodes
+ */
+function addNodesCircle(fromUri, toNodes, sigmaInstance, radius, nodeColour) {
+    var bindings = toNodes.results.bindings;
+    var graph = sigmaInstance.graph;
+    var fromNode = graph.nodes(fromUri);
+    var x = fromNode.x;
+    var y = fromNode.y;
+    var len = bindings.length;
+    for(var i = 0; i < len; i++) {
+        var row = bindings[i];
+        var weight = 1;
+        if("weight" in row) {
+            weight = row.weight.value;
+        }
+        graph.addNode({
+            id: row.id.value,
+            x: x + radius * Math.cos(2 * Math.PI * i / len),
+            y: y + radius * Math.sin(2 * Math.PI * i / len),
+            color: nodeColour,
+            size: weight,
+            label: row.label.value
+        });
+        graph.addEdge({
+            id: fromUri+row.id.value,
+            source: fromUri,
+            target: row.id.value,
+            size: weight,
+            type:'curve'
+        })
+    }
+    sigmaInstance.refresh();
 }
