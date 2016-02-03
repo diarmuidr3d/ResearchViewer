@@ -91,20 +91,6 @@ function displayAuthor(uri) {
             "?coauthor2 rucd:cooperatesWith <" + uri + "> . " +
             "} ";
         query(directQuery, addDirectCoAuthorLinks);
-        //var inDirectQuery = prefixes.RDF + prefixes.RUCD + "SELECT ?coauthor ?link ?coauthor2 ?firstName ?lastName " +
-        //    "WHERE { " +
-        //    "<" + uri + "> rucd:cooperatesWith ?coauthor . " +
-        //    "?coauthor rucd:cooperatesWith ?link . " +
-        //    "?link rucd:cooperatesWith ?coauthor2 . " +
-        //    "FILTER( ?coauthor != ?coauthor2 ) . " +
-        //    "BIND( EXISTS{ ?link rucd:cooperatesWith  <" + uri + "> } as ?isLinked ) . " +
-        //    "FILTER( ?isLinked != true ) . " +
-        //    "?coauthor2 rucd:cooperatesWith <" + uri + "> . " +
-        //    "?link rucd:firstName ?firstName . " +
-        //    "?link rucd:lastName ?lastName . " +
-        //    "} ";
-        //console.log(inDirectQuery);
-        //query(inDirectQuery, addInDirectCoAuthorLinks);
         finish(mySigma);
     }
     function getCoAuthors() {
@@ -152,50 +138,6 @@ function displayAuthor(uri) {
             });
         }
     }
-    //function addInDirectCoAuthorLinks(data) {
-    //    console.log(data);
-    //    var bindings = data.results.bindings;
-    //    for(var rowId in bindings) {
-    //        var row = bindings[rowId];
-    //        //console.log(row);
-    //        var coauthor1 = row.coauthor.value;
-    //        var coauthor2 = row.coauthor2.value;
-    //        var link = row.link.value;
-    //        var existingLink = graph.nodes(link);
-    //        //console.log(existingLink);
-    //        if(typeof existingLink === 'undefined') {
-    //            graph.addNode({
-    //                id: link,
-    //                x: Math.random(),
-    //                y: Math.random(),
-    //                size: 1,
-    //                color: 'rgba(0,0,255,0.05)',
-    //                label: row.lastName.value + ", " + row.firstName.value
-    //            });
-    //        }
-    //        var edge1 = coauthor1 + link;
-    //        if(typeof graph.edges(edge1) === 'undefined') {
-    //            graph.addEdge({
-    //                id: edge1,
-    //                source: coauthor1,
-    //                target: link,
-    //                color: 'rgba(0,0,255,0.05)',
-    //                size: 1
-    //            });
-    //        }
-    //        var edge2 = coauthor2 + link;
-    //        if(typeof graph.edges(edge2) === 'undefined') {
-    //            graph.addEdge({
-    //                id: coauthor2 + link,
-    //                source: coauthor2,
-    //                target: link,
-    //                color: 'rgba(0,0,255,0.05)',
-    //                size: 1
-    //            });
-    //        }
-    //    }
-    //    finish(mySigma);
-    //}
     function addCoAuthors(data) {
         var bindings = data.results.bindings;
         for(var rowId in bindings) {
