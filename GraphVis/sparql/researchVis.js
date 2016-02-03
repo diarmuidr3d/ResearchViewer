@@ -38,51 +38,44 @@ function displayAuthor(uri) {
     //setTimeout(getCoAuthors2, 0);
     getAuthorName(uri, graph);
     var mouseOverPapers = {};
-    mySigma.bind('overNode', function(e) {
-        var coAuthUri = e.data.node.id;
-        if(coAuthUri in mouseOverPapers) {
-            setAsActive(mouseOverPapers[coAuthUri]);
-        } else {
-            getCoauthoredPapers(coAuthUri,highlightSharedPapers);
-        }
-        function highlightSharedPapers(data) {
-            var bindings = data.results.bindings;
-            mouseOverPapers[coAuthUri] = bindings;
-            setAsActive(bindings);
-        }
-        function setAsActive(uriArray) {
-            var papers = $('#papers');
-            papers.animate({scrollTop: papers.scrollTop() + $(document.getElementById(uriArray[0].paper.value)).position().top}, 'slow');
-            for (var rowId in uriArray) {
-                var paper = uriArray[rowId].paper.value;
-                document.getElementById(paper).className += " active";
-            }
-        }
-    });
-    mySigma.bind('outNode', function(e) {
-        var coAuthUri = e.data.node.id;
-        if(coAuthUri in mouseOverPapers) {
-            setAsInactive(mouseOverPapers[coAuthUri]);
-        } else {
-            getCoauthoredPapers(coAuthUri,unHighlightSharedPapers);
-        }
-        function unHighlightSharedPapers(data) {
-            var bindings = data.results.bindings;
-            setAsInactive(bindings);
-        }
-        function setAsInactive(uriArray){
-            for (var rowId in uriArray) {
-                var paper = uriArray[rowId].paper.value;
-                document.getElementById(paper).className = document.getElementById(paper).className.replace(/\bactive\b/,'');
-            }
-        }
-    });
+    mySigma.bind('overNode', mouseNode);
+    mySigma.bind('outNode', mouseNode);
     mySigma.bind('clickNode', function(e) {
         var nodeId = e.data.node.id;
         if(nodeId != uri) {
             displayAuthor(nodeId);
         }
     });
+    function mouseNode(e) {
+        var type = e.type;
+        var coAuthUri = e.data.node.id;
+        if(coAuthUri in mouseOverPapers) {
+            toggle(mouseOverPapers[coAuthUri], type);
+        } else {
+            getCoauthoredPapers(coAuthUri,extractBindings);
+        }
+        function extractBindings(data) {
+                var bindings = data.results.bindings;
+                if(type == 'overNode') mouseOverPapers[coAuthUri] = bindings;
+                toggle(bindings, type);
+            }
+        function toggle(uriArray, type) {
+            var papers = $('#papers');
+            if(type === 'overNode') {
+                papers.animate({
+                    scrollTop: papers.scrollTop() + $(document.getElementById(uriArray[0].paper.value)).position().top
+                }, 'slow');
+            }
+            for (var rowId in uriArray) {
+                var paper = uriArray[rowId].paper.value;
+                if(type === 'overNode') {
+                    document.getElementById(paper).className += " active";
+                } else {
+                    document.getElementById(paper).className = document.getElementById(paper).className.replace(/\bactive\b/,'');
+                }
+            }
+        }
+    }
     function getCoauthoredPapers(coAuthUri, callback) {
         var queryString = prefixes.RUCD + "SELECT ?paper WHERE {\n" +
             "<" + uri + "> rucd:publication ?paper .\n" +
