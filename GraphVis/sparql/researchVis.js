@@ -1,13 +1,20 @@
 prefixes.RUCD = "PREFIX rucd: <http://diarmuidr3d.github.io/swrc_ont/swrc_UCD.owl#> ";
 
-var domElement = 'graph';
+var domElements = {};
+domElements.graph = 'graph';
+domElements.paperList = 'papers';
 endpoint = 'http://localhost:3030/ucdrr2/query';
+var colours={};
+colours.author = '#0f0';
+colours.coauthor = '#f00';
+colours.paper = '#00f';
+colours.coauthorEdge = 'rgba(255,0,0,0.09)';
 
 function createSigma() {
-    $('#'+domElement).html('');
+    $('#'+domElements.graph).html('');
     return new sigma({
         renderers: [{
-            container: document.getElementById(domElement),
+            container: document.getElementById(domElements.graph),
             type: 'canvas'
         }],
         settings: {
@@ -31,7 +38,7 @@ function displayAuthor(uri) {
         id: uri,
         x:0,
         y:0,
-        color: '#0f0',
+        color: colours.author,
         size: authorSize
     });
     setTimeout(getCoAuthors, 0);
@@ -60,7 +67,7 @@ function displayAuthor(uri) {
                 toggle(bindings, type);
             }
         function toggle(uriArray, type) {
-            var papers = $('#papers');
+            var papers = $('#'+domElements.paperList);
             if(type === 'overNode') {
                 papers.animate({
                     scrollTop: papers.scrollTop() + $(document.getElementById(uriArray[0].paper.value)).position().top
@@ -119,7 +126,7 @@ function displayAuthor(uri) {
         query(queryString, addCoAuthors2);
     }
     function addCoAuthors2(data) {
-        addNodesCircle(uri,data,mySigma,10,'#f00');
+        addNodesCircle(uri, data, mySigma, 10, colours.coauthor);
         setTimeout(getCoAuthorLinks, 0);
     }
     function addDirectCoAuthorLinks(data) {
@@ -132,7 +139,7 @@ function displayAuthor(uri) {
                 id: coauthor1+coauthor2,
                 source: coauthor1,
                 target: coauthor2,
-                color: "rgba(255,0,0,0.09)",
+                color: colours.coauthorEdge,
                 size: 1,
                 type:'curve'
             });
@@ -155,7 +162,7 @@ function displayAuthor(uri) {
                 x: Math.random(),
                 y: Math.random(),
                 size: size,
-                color: '#f00',
+                color: colours.coauthor,
                 label: row.lastName.value + ", " + row.firstName.value
             });
             graph.addEdge({
@@ -250,7 +257,7 @@ function displayCoAuthorPath(fromUri, toUri) {
             id: fromUri,
             x:-1,
             y:0,
-            color: '#0f0',
+            color: colours.author,
             size: 1
         });
         getAuthorName(fromUri, graph);
@@ -258,7 +265,7 @@ function displayCoAuthorPath(fromUri, toUri) {
             id: toUri,
             x:paths[0].length,
             y:0,
-            color: '#0f0',
+            color: colours.author,
             size: 1
         });
         getAuthorName(toUri, graph);
@@ -273,7 +280,7 @@ function displayCoAuthorPath(fromUri, toUri) {
                         id: nodeId,
                         x: j,
                         y: i,
-                        color: '#f00',
+                        color: colours.coauthor,
                         size: 1
                     });
                     getAuthorName(nodeId, graph);
@@ -380,7 +387,7 @@ function getPapersAuthored(authorUri, callback) {
     query(queryString, callback);
 }
 function displayPapers(data) {
-    var container = $('#papers');
+    var container = $('#'+domElements.paperList);
     container.html('');
     var list = $("<div></div>");
     container.append(list);
@@ -419,7 +426,7 @@ function displayBipartiteGraphAuthor(authorUri) {
         id: authorUri,
         x:0,
         y:0,
-        color: '#0f0',
+        color: colours.author,
         size: 1
     });
     mySigma.bind('clickNode', function(e) {
@@ -431,7 +438,7 @@ function displayBipartiteGraphAuthor(authorUri) {
     getAuthorName(authorUri, graph);
     getPapersAuthored(authorUri, addPapers);
     function addPapers(data) {
-        addNodesCircle(authorUri, data, mySigma, 10, '#00f');
+        addNodesCircle(authorUri, data, mySigma, 10, colours.paper);
     }
 }
 function getPaperName(paperUri, graph) {
@@ -463,7 +470,7 @@ function displayBipartiteGraphPaper(paperUri) {
         id: paperUri,
         x:0,
         y:0,
-        color: '#00f',
+        color: colours.paper,
         size: 1
     });
     mySigma.bind('clickNode', function(e) {
@@ -475,7 +482,7 @@ function displayBipartiteGraphPaper(paperUri) {
     getPaperName(paperUri, graph);
     getPaperAuthors(paperUri, addAuthors);
     function addAuthors(data) {
-        addNodesCircle(paperUri, data, mySigma, 10, '#0f0');
+        addNodesCircle(paperUri, data, mySigma, 10, colours.author);
     }
 }
 /**
