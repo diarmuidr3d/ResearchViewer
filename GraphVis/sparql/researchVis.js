@@ -35,6 +35,7 @@ function displayAuthor(uri) {
         size: authorSize
     });
     setTimeout(getCoAuthors, 0);
+    //setTimeout(getCoAuthors2, 0);
     getAuthorName(uri, graph);
     var mouseOverPapers = {};
     mySigma.bind('overNode', function(e) {
@@ -124,6 +125,23 @@ function displayAuthor(uri) {
             "} " +
             "GROUP BY ?coauthor ?firstName ?lastName ";
         query(queryString, addCoAuthors);
+    }
+    function getCoAuthors2() {
+        var queryString = prefixes.RDF + prefixes.RUCD +
+            "SELECT ?id (CONCAT(STR(?lastName), ', ', STR(?firstName)) AS ?label) (COUNT (?paper) AS ?weight) " +
+            "WHERE { " +
+            "<" + uri + "> rucd:cooperatesWith ?id . " +
+            "<" + uri + "> rucd:publication ?paper . " +
+            "?id rucd:publication ?paper . " +
+            "?id rucd:firstName ?firstName . " +
+            "?id rucd:lastName ?lastName . " +
+            "} " +
+            "GROUP BY ?id ?firstName ?lastName ?label";
+        query(queryString, addCoAuthors2);
+    }
+    function addCoAuthors2(data) {
+        addNodesCircle(uri,data,mySigma,10,'#f00');
+        setTimeout(getCoAuthorLinks, 0);
     }
     function addDirectCoAuthorLinks(data) {
         var bindings = data.results.bindings;
