@@ -6,9 +6,15 @@ domElements.paperList = 'papers';
 endpoint = 'http://localhost:3030/ucdrr2/query';
 var colours={};
 colours.author = '#093';
-colours.coauthor = '#f00';
+//colours.coauthor = '#f00';
+colours.coauthor = 'rgba(255,0,0,0.5)';
 colours.paper = '#00f';
 colours.coauthorEdge = 'rgba(255,0,0,0.09)';
+colours.opaque = "#ccc";
+
+sigma.classes.graph.addMethod('getIncident', function(nodeId) {
+    return this.allNeighborsIndex[nodeId];
+});
 
 function createSigma() {
     $('#'+domElements.graph).html('');
@@ -69,17 +75,20 @@ function displayAuthor(uri) {
         }
         function toggle(uriArray, type) {
             var papers = $('#'+domElements.paperList);
-            if(type === 'overNode') {
-                papers.animate({
-                    scrollTop: papers.scrollTop() + $(document.getElementById(uriArray[0].paper.value)).position().top
-                }, 'slow');
-            }
-            for (var rowId in uriArray) {
-                var paper = uriArray[rowId].paper.value;
+            var paperElem = document.getElementById(uriArray[0].paper.value);
+            if(paperElem != null) {
                 if(type === 'overNode') {
-                    document.getElementById(paper).className += " active";
-                } else {
-                    document.getElementById(paper).className = document.getElementById(paper).className.replace(/\bactive\b/,'');
+                    papers.animate({
+                        scrollTop: papers.scrollTop() + $(paperElem).position().top
+                    }, 'slow');
+                }
+                for (var rowId in uriArray) {
+                    var paper = uriArray[rowId].paper.value;
+                    if(type === 'overNode') {
+                        document.getElementById(paper).className += " active";
+                    } else {
+                        document.getElementById(paper).className = document.getElementById(paper).className.replace(/\bactive\b/,'');
+                    }
                 }
             }
         }
@@ -158,7 +167,7 @@ function displayAuthor(uri) {
                 source: coauthor1,
                 target: coauthor2,
                 //color: colours.coauthorEdge,
-                size: row.weight.value,
+                size: parseInt(row.weight.value),
                 type:'curve',
                 priority: 1
             });
@@ -179,8 +188,19 @@ function displayAuthor(uri) {
                 mySigma.refresh();
             }
             var coauth = graph.nodes(coauthor);
-            coauth.size = size;
-            coauth.label = row.lastName.value + ", " + row.firstName.value;
+            if(typeof coauth === 'undefined') {
+                graph.addNode({
+                    id: coauthor,
+                    x: Math.random(),
+                    y: Math.random(),
+                    size: size,
+                    color: colours.coauthor,
+                    label: row.lastName.value + ", " + row.firstName.value
+                });
+            } else {
+                coauth.size = size;
+                coauth.label = row.lastName.value + ", " + row.firstName.value;
+            }
             graph.addEdge({
                 id: uri+coauthor,
                 source: uri,
@@ -210,32 +230,72 @@ function displayAuthor(uri) {
             list.append(item);
         }
     }
+    var previouspaper = null;
     function toggleNodesForPaper(paperId, sigmaInst) {
-        var queryString = prefixes.RUCD + "SELECT ?author WHERE { " +
-            "?author rucd:publication <" + paperId + "> . " +
-            "}";
-        query(queryString, toggleNodes);
+        console.log(previouspaper, " == ", paperId);
+        if(paperId == previouspaper) {
+            previouspaper = null;
+            var nodes = graph.nodes();
+            for(var rowId in nodes) {
+                setColour(nodes[rowId].id);
+            }
+            var edges = graph.edges();
+            for(var rowIdx in edges) {
+                setEdgeColor(edges[rowIdx]);
+            }
+            sigmaInst.refresh();
+        } else {
+            previouspaper = paperId;
+            var queryString = prefixes.RUCD + "SELECT ?author WHERE { " +
+                "?author rucd:publication <" + paperId + "> . " +
+                "}";
+            query(queryString, toggleNodes);
+        }
         function toggleNodes(data) {
             var bindings = data.results.bindings;
             var nodes = sigmaInst.graph.nodes();
-            for(var rowIdx in nodes) {
-                nodes[rowIdx].color = "#ccc";
+            for (var rowIdx in nodes) {
+                nodes[rowIdx].color = colours.opaque;
             }
-            for(var rowId in bindings) {
+            var edges = sigmaInst.graph.edges();
+            for(var rowIdy in edges) {
+                edges[rowIdy].color = colours.opaque;
+            }
+            var seenNodes = [];
+            for (var rowId in bindings) {
                 var nodeId = bindings[rowId].author.value;
-                var color = colours.coauthor;
-                if(nodeId == uri) {
-                    color = colours.author;
+                setColour(nodeId);
+                var incidentEdges = graph.getIncident(nodeId);
+                for(var neighbour in incidentEdges) {
+                    if($.inArray(neighbour, seenNodes) > -1) {
+                        var edgeArr = incidentEdges[neighbour];
+                        //There should only ever be one node in here
+                        for(var edge in edgeArr) {
+                            setEdgeColor(edgeArr[edge]);
+                        }
+                    }
                 }
-                sigmaInst.graph.nodes(nodeId).color = color;
+                seenNodes.push(nodeId);
             }
             sigmaInst.refresh();
+        }
+        function setColour(node) {
+            var color = colours.coauthor;
+            if(node == uri) {
+                color = colours.author;
+            }
+            sigmaInst.graph.nodes(node).color = color;
+        }
+        function setEdgeColor(edge) {
+            if(edge.source == uri || edge.target == uri) {
+                edge.color = colours.author;
+            } else {
+                edge.color = colours.coauthor;
+            }
         }
     }
 }
 function finish(mySigma) {
-    console.log("Running finish loop");
-    //console.log(mySigma.graph.edges("http://researchrepository.ucd.ie/author/CoyleLorcanhttp://researchrepository.ucd.ie/author/FreyneJill"));
     mySigma.refresh();
     mySigma.startForceAtlas2({worker: true, barnesHutOptimize: false});
     //var fa = sigma.layouts.startForceLink(mySigma, {});
@@ -348,7 +408,6 @@ function displayCoAuthorPath(fromUri, toUri) {
                     getAuthorName(nodeId, graph);
                 }
                 var edgeId = previous + nodeId;
-                //console.log(graph.edges(edgeId));
                 if(typeof graph.edges(edgeId) === 'undefined') {
                     graph.addEdge({
                         id: edgeId,
