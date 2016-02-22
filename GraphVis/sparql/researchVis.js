@@ -163,15 +163,17 @@ function displayAuthor(uri) {
                     color: colours.coauthor
                 });
             }
-            graph.addEdge({
-                id: coauthor1+coauthor2,
-                source: coauthor1,
-                target: coauthor2,
-                color: colours.coauthorEdge,
-                size: parseInt(row.weight.value),
-                type:'curve',
-                priority: 1
-            });
+            if((typeof graph.edges(coauthor1+coauthor2) === 'undefined') && typeof graph.edges(coauthor2+coauthor1) === 'undefined') {
+                graph.addEdge({
+                    id: coauthor1 + coauthor2,
+                    source: coauthor1,
+                    target: coauthor2,
+                    color: colours.coauthorEdge,
+                    size: parseInt(row.weight.value),
+                    type: 'curve',
+                    priority: 1
+                });
+            }
         }
         getCoAuthors();
     }
