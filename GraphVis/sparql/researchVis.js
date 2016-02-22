@@ -6,11 +6,12 @@ domElements.paperList = 'papers';
 endpoint = 'http://localhost:3030/ucdrr2/query';
 var colours={};
 colours.author = '#093';
-//colours.coauthor = '#f00';
-colours.coauthor = 'rgba(255,0,0,0.5)';
+colours.coauthor = '#f00';
+//colours.coauthor = 'rgba(255,0,0,0.5)';
 colours.paper = '#00f';
-colours.coauthorEdge = 'rgba(255,0,0,0.09)';
+colours.coauthorEdge = 'rgba(255,0,0,0.4)';
 colours.opaque = "#ccc";
+var pathQueryLen = 6;
 
 sigma.classes.graph.addMethod('getIncident', function(nodeId) {
     return this.allNeighborsIndex[nodeId];
@@ -166,7 +167,7 @@ function displayAuthor(uri) {
                 id: coauthor1+coauthor2,
                 source: coauthor1,
                 target: coauthor2,
-                //color: colours.coauthorEdge,
+                color: colours.coauthorEdge,
                 size: parseInt(row.weight.value),
                 type:'curve',
                 priority: 1
@@ -290,7 +291,7 @@ function displayAuthor(uri) {
             if(edge.source == uri || edge.target == uri) {
                 edge.color = colours.author;
             } else {
-                edge.color = colours.coauthor;
+                edge.color = colours.coauthorEdge;
             }
         }
     }
@@ -299,7 +300,7 @@ function finish(mySigma) {
     mySigma.refresh();
     mySigma.startForceAtlas2({worker: true, barnesHutOptimize: false});
     //var fa = sigma.layouts.startForceLink(mySigma, {});
-    setTimeout(stopForceAtlas, 500);
+    setTimeout(stopForceAtlas, 1000);
     //sigma.layouts.fruchtermanReingold.start(mySigma, {});
 
     mySigma.refresh();
@@ -338,10 +339,10 @@ function displayCoAuthorPath(fromUri, toUri) {
             var next = i + 1;
             selectString += 'STR(?coauthor' + i + '), ",",';
             queryString += "	?coauthor" + i + " rucd:cooperatesWith ?coauthor" + next + " . \n";
-            for (var k = i; k > 0; k--) {
-                var prev = k - 1;
-                queryString += "	FILTER (?coauthor" + k + " != ?coauthor" + prev + ") .\n"
-            }
+            //for (var k = i; k > 0; k--) {
+            //    var prev = k - 1;
+            //    queryString += "	FILTER (?coauthor" + k + " != ?coauthor" + prev + ") .\n"
+            //}
             i++;
         }
         selectString += 'STR(?coauthor' + i + ')) AS ?link)\n';
@@ -351,7 +352,8 @@ function displayCoAuthorPath(fromUri, toUri) {
 
         function pathResult(data) {
             var bindings = data.results.bindings;
-            if(bindings.length == 0 && length < 6) {
+            console.log("Path query ran", bindings);
+            if(bindings.length == 0 && length < pathQueryLen) {
                 pathQuery2(length + 1);
             } else if (bindings.length > 0) {
                 var paths = [];
@@ -375,10 +377,11 @@ function displayCoAuthorPath(fromUri, toUri) {
     function drawPathGraph(paths) {
         var mySigma = createSigma();
         var graph = mySigma.graph;
+        var ypos = paths.length / 2;
         graph.addNode({
             id: fromUri,
             x:-1,
-            y:0,
+            y:ypos,
             color: colours.author,
             size: 1
         });
@@ -386,7 +389,7 @@ function displayCoAuthorPath(fromUri, toUri) {
         graph.addNode({
             id: toUri,
             x:paths[0].length,
-            y:0,
+            y:ypos,
             color: colours.author,
             size: 1
         });
