@@ -7,11 +7,12 @@ endpoint = 'http://localhost:3030/ucdrr2/query';
 var colours={};
 colours.author = '#093';
 colours.coauthor = '#f00';
-//colours.coauthor = 'rgba(255,0,0,0.5)';
 colours.paper = '#00f';
 colours.coauthorEdge = 'rgba(255,0,0,0.4)';
 colours.opaque = "#ccc";
 var pathQueryLen = 6;
+var layoutRuntime = 50000;
+var edgeType = 'curve';
 
 sigma.classes.graph.addMethod('getIncident', function(nodeId) {
     return this.allNeighborsIndex[nodeId];
@@ -170,7 +171,7 @@ function displayAuthor(uri) {
                     target: coauthor2,
                     color: colours.coauthorEdge,
                     size: parseInt(row.weight.value),
-                    type: 'curve',
+                    type: edgeType,
                     priority: 1
                 });
             }
@@ -209,7 +210,7 @@ function displayAuthor(uri) {
                 source: uri,
                 target: coauthor,
                 size: size,
-                type:'curve',
+                type: edgeType,
                 priority: 2
             });
         }
@@ -302,7 +303,7 @@ function finish(mySigma) {
     mySigma.refresh();
     mySigma.startForceAtlas2({worker: true, barnesHutOptimize: false});
     //var fa = sigma.layouts.startForceLink(mySigma, {});
-    setTimeout(stopForceAtlas, 1000);
+    setTimeout(stopForceAtlas, layoutRuntime);
     //sigma.layouts.fruchtermanReingold.start(mySigma, {});
 
     mySigma.refresh();
@@ -420,7 +421,7 @@ function displayCoAuthorPath(fromUri, toUri) {
                         target: nodeId,
                         //color: "rgba(255,0,0,0.05)",
                         size: 1,
-                        type:'curve'
+                        type: edgeType
                     });
                 }
                 previous = nodeId;
@@ -434,7 +435,7 @@ function displayCoAuthorPath(fromUri, toUri) {
                     target: previous,
                     //color: "rgba(255,0,0,0.05)",
                     size: 1,
-                    type:'curve'
+                    type: edgeType
                 });
             }
             previous = fromUri;
@@ -463,14 +464,18 @@ function findAuthorForm(formId, resultsId, authorClickFunction) {
 function findAuthor(firstName, lastname, resultsId, clickFunction) {
     var queryString = prefixes.RUCD + "SELECT ?author ?firstName ?lastName WHERE {\n";
     if(typeof firstName != 'undefined' && firstName != "") {
-        queryString += '    ?author rucd:firstName "' + firstName + '" . \n';
+        queryString += '    ?author rucd:firstName ?firstName . \n' +
+            '   FILTER(lcase(str(?firstName)) = "' + firstName.toLowerCase() + '") . \n';
+    } else {
+        queryString += "    ?author rucd:firstName ?firstName . \n";
     }
     if(typeof lastname != 'undefined' && lastname != "") {
-        queryString += '    ?author rucd:lastName "' + lastname + '" . \n';
+        queryString += '    ?author rucd:lastName ?lastName . \n' +
+            '   FILTER(lcase(str(?lastName)) = "' + lastname.toLowerCase() + '") . \n';
+    } else {
+        queryString += "   ?author rucd:lastName ?lastName . \n";
     }
-    queryString += "    ?author rucd:firstName ?firstName . \n" +
-        "   ?author rucd:lastName ?lastName . \n" +
-        "}";
+    queryString += " }";
     query(queryString, displayAuthorResults);
 
     function displayAuthorResults(data) {
@@ -628,7 +633,7 @@ function addNodesCircle(fromUri, toNodes, sigmaInstance, radius, nodeColour) {
             source: fromUri,
             target: row.id.value,
             size: weight,
-            type:'curve'
+            type: edgeType
         })
     }
     sigmaInstance.refresh();
