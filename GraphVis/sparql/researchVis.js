@@ -11,7 +11,7 @@ colours.paper = '#00f';
 colours.coauthorEdge = 'rgba(255,0,0,0.4)';
 colours.opaque = "#ccc";
 var pathQueryLen = 6;
-var layoutRuntimeScale = 25;
+var layoutRuntimeScale = 30;
 var edgeType = 'curve';
 
 sigma.classes.graph.addMethod('getIncident', function(nodeId) {
@@ -27,7 +27,7 @@ function createSigma() {
         }],
         settings: {
             minEdgeSize: 1,
-            labelThreshold: 5,
+            labelThreshold: 6,
             maxEdgeSize: 2,
             minNodeSize: 4,
             maxNodeSize: 20,
@@ -144,75 +144,79 @@ function displayAuthor(uri) {
     //}
     function addDirectCoAuthorLinks(data) {
         var bindings = data.results.bindings;
-        for(var rowId in bindings) {
-            var row = bindings[rowId];
-            var coauthor1 = row.coauthor.value;
-            var coauthor2 = row.coauthor2.value;
-            if(typeof graph.nodes(coauthor1) === 'undefined') {
-                graph.addNode({
-                    id: coauthor1,
-                    x: Math.random(),
-                    y: Math.random(),
-                    color: colours.coauthor
-                });
-            }
-            if(typeof graph.nodes(coauthor2) === 'undefined') {
-                graph.addNode({
-                    id: coauthor2,
-                    x: Math.random(),
-                    y: Math.random(),
-                    color: colours.coauthor
-                });
-            }
-            if((typeof graph.edges(coauthor1+coauthor2) === 'undefined') && typeof graph.edges(coauthor2+coauthor1) === 'undefined') {
-                graph.addEdge({
-                    id: coauthor1 + coauthor2,
-                    source: coauthor1,
-                    target: coauthor2,
-                    color: colours.coauthorEdge,
-                    size: parseInt(row.weight.value),
-                    type: edgeType,
-                    priority: 1
-                });
+        if (bindings.length > 1 || bindings[0].weight.value != 0) {
+            for(var rowId in bindings) {
+                var row = bindings[rowId];
+                var coauthor1 = row.coauthor.value;
+                var coauthor2 = row.coauthor2.value;
+                if(typeof graph.nodes(coauthor1) === 'undefined') {
+                    graph.addNode({
+                        id: coauthor1,
+                        x: Math.random(),
+                        y: Math.random(),
+                        color: colours.coauthor
+                    });
+                }
+                if(typeof graph.nodes(coauthor2) === 'undefined') {
+                    graph.addNode({
+                        id: coauthor2,
+                        x: Math.random(),
+                        y: Math.random(),
+                        color: colours.coauthor
+                    });
+                }
+                if((typeof graph.edges(coauthor1+coauthor2) === 'undefined') && typeof graph.edges(coauthor2+coauthor1) === 'undefined') {
+                    graph.addEdge({
+                        id: coauthor1 + coauthor2,
+                        source: coauthor1,
+                        target: coauthor2,
+                        color: colours.coauthorEdge,
+                        size: parseInt(row.weight.value),
+                        type: edgeType,
+                        priority: 1
+                    });
+                }
             }
         }
         getCoAuthors();
     }
     function addCoAuthors(data) {
         var bindings = data.results.bindings;
-        for(var rowId in bindings) {
-            var row = bindings[rowId];
-            var coauthor = row.coauthor.value;
-            var size = parseInt(row.weight.value);
-            if(size > authorSize) {
-                var authorNode = graph.nodes(uri);
-                //authorSize = size + (size * 0.2);
-                authorSize = size;
-                authorNode["size"] = authorSize;
-                mySigma.refresh();
-            }
-            var coauth = graph.nodes(coauthor);
-            if(typeof coauth === 'undefined') {
-                graph.addNode({
-                    id: coauthor,
-                    x: Math.random(),
-                    y: Math.random(),
+        if (bindings.length > 1 || bindings[0].weight.value != 0) {
+            for (var rowId in bindings) {
+                var row = bindings[rowId];
+                var coauthor = row.coauthor.value;
+                var size = parseInt(row.weight.value);
+                if (size > authorSize) {
+                    var authorNode = graph.nodes(uri);
+                    //authorSize = size + (size * 0.2);
+                    authorSize = size;
+                    authorNode["size"] = authorSize;
+                    mySigma.refresh();
+                }
+                var coauth = graph.nodes(coauthor);
+                if (typeof coauth === 'undefined') {
+                    graph.addNode({
+                        id: coauthor,
+                        x: Math.random(),
+                        y: Math.random(),
+                        size: size,
+                        color: colours.coauthor,
+                        label: row.lastName.value + ", " + row.firstName.value
+                    });
+                } else {
+                    coauth.size = size;
+                    coauth.label = row.lastName.value + ", " + row.firstName.value;
+                }
+                graph.addEdge({
+                    id: uri + coauthor,
+                    source: uri,
+                    target: coauthor,
                     size: size,
-                    color: colours.coauthor,
-                    label: row.lastName.value + ", " + row.firstName.value
+                    type: edgeType,
+                    priority: 2
                 });
-            } else {
-                coauth.size = size;
-                coauth.label = row.lastName.value + ", " + row.firstName.value;
             }
-            graph.addEdge({
-                id: uri+coauthor,
-                source: uri,
-                target: coauthor,
-                size: size,
-                type: edgeType,
-                priority: 2
-            });
         }
         finish(mySigma);
     }
@@ -311,6 +315,7 @@ function finish(mySigma) {
 
     function stopForceAtlas() {
         mySigma.stopForceAtlas2();
+        console.log("Killed force atlas");
         //sigma.layouts.killForceLink();
     }
 
