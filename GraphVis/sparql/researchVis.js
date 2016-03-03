@@ -11,7 +11,7 @@ colours.paper = '#00f';
 colours.coauthorEdge = 'rgba(255,0,0,0.4)';
 colours.opaque = "#ccc";
 var pathQueryLen = 6;
-var layoutRuntime = 50000;
+var layoutRuntimeScale = 25;
 var edgeType = 'curve';
 
 sigma.classes.graph.addMethod('getIncident', function(nodeId) {
@@ -303,7 +303,7 @@ function finish(mySigma) {
     mySigma.refresh();
     mySigma.startForceAtlas2({worker: true, barnesHutOptimize: false});
     //var fa = sigma.layouts.startForceLink(mySigma, {});
-    setTimeout(stopForceAtlas, layoutRuntime);
+    setTimeout(stopForceAtlas, mySigma.graph.nodes().length * layoutRuntimeScale);
     //sigma.layouts.fruchtermanReingold.start(mySigma, {});
 
     mySigma.refresh();
