@@ -50,6 +50,14 @@ class SWRC:
         else:
             return False
 
+    def get_authors(self):
+        author_array = []
+        for author in self.graph.subjects(RDF.type, self.ucd_ns.AcademicStaff):
+            fname = self.graph.value(subject=author, predicate=self.ucd_ns.firstName).value
+            lname = self.graph.value(subject=author, predicate=self.ucd_ns.lastName).value
+            author_array.append({"uri":author, "firstName": fname, "lastName": lname})
+        return author_array
+
     def add_paper(self, uri, type, name, authors=None):
         """
         Adds a paper to the graph
@@ -210,7 +218,7 @@ class SWRC:
         if endpoint != None:
             rdflib_put(self.graph, endpoint)
 
-    def get_authors(self):
+    def count_authors(self):
         """
         Prints the number of authors in the graph
 

@@ -4,6 +4,10 @@ import traceback
 from lxml import html
 import requests
 import sys
+
+from rdflib.resource import Resource
+
+from WebScraper.department_scraper import get_school_from_page, get_page_for_name
 from WebScraper.swrc import SWRC
 
 __author__ = 'Diarmuid Ryan'
@@ -122,6 +126,7 @@ def split_author_name(name):
                 "first": name[last_name_index:]
                 }
 
+department_rdf = {}
 
 def get_departments(page_domain, url, process_pool):
     """
@@ -143,44 +148,35 @@ def get_departments(page_domain, url, process_pool):
         school_links = college.xpath("ul/li/div/div/a/@href".format(index))
         print("schools for ", name, " are ", school_links)
         college_rdf = swrc.add_college(link, name, uni)
-        schools = process_pool.map(get_department_authors, zip(school_links, school_names))
-        print(schools)
-        for school in schools:
-            print("Adding school {0}".format(school["name"]))
-            dept = swrc.add_college(school["uri"], school["name"], college_rdf)
-            print(school["authors"])
-            for author in school["authors"]:
-                if author != None: # If the author isn't et al.
-                    swrc.add_affiliation(author_uri=author["uri"], organisation_rdf=dept)
+        department_rdf[name] = college_rdf
+        for school_link, school_name in zip(school_links, school_names):
+            print("Adding school {0}".format(school_name))
+            dept = swrc.add_school(school_link, school_name, college_rdf)
+            department_rdf[school_name] = dept
+            # print(school["authors"])
+            # for author in school["authors"]:
+            #     if author != None: # If the author isn't et al.
+            #         swrc.add_affiliation(author_uri=author["uri"], organisation_rdf=dept)
         index += 1
 
 
-def get_department_authors(dep):
+def get_department_authors(authors: [{}]):
     """
-    Gets all authors from a particular college or school or insitute
-    :param dep: A (link, name) tuple for the college or school for which the authors are to be gotten
-    :return: a dictionary of uri, name and authors. authors is a list of authors returned by split_author_name
+    :param authors:
     """
-    page_domain = "http://researchrepository.ucd.ie"
-    (link, name) = dep
-    link = page_domain + link
-    page = requests.get(link)
-    tree = html.fromstring(page.content)
-    author_link = page_domain + tree.xpath("/html/body/div/div[4]/div/div[1]/div/div[1]/div/ul/li[2]/a/@href")[0]
-    authors = []
-    while author_link is not None:
-        page = requests.get(author_link)
-        tree = html.fromstring(page.content)
-        # This XPath is different to that in a browser as the acutal code and the browser display are different
-        got_authors = tree.xpath("/html/body/div/div[4]/div/div[1]/div/div[2]/table/tr/td/a/text()")
-        this_page = list(map(split_author_name, got_authors))
-        authors = authors + this_page
-        author_link = tree.xpath("/html/body/div/div[4]/div/div[1]/div/div[1]/ul/li[2]/a/@href")
-        if len(author_link) > 0:
-            author_link = link + "/" + author_link[0]
-        else:
-            author_link = None
-    return {"uri": link, "name": name, "authors": authors}
+    coverage = 0
+    for author in authors:
+        print("Finding: ", author)
+        name_page = get_page_for_name(author["lastName"] + ", " + author["firstName"])
+        if name_page is not None:
+            school = get_school_from_page(name_page)
+            if school is not None and school in department_rdf:
+                swrc.add_affiliation(author_uri=author["uri"], organisation_rdf=department_rdf[school])
+                coverage += 1
+            else:
+                print("********************* Error 404: we lost the ", school)
+    print("total coverage of authors in research repository: ", coverage/len(authors))
+
 
 
 if __name__ == '__main__':
@@ -211,6 +207,7 @@ if __name__ == '__main__':
             print(i)
             i += 1
         get_departments(domain, departments_link, pool)
+        get_department_authors(swrc.get_authors())
     except (KeyboardInterrupt, SystemExit, Exception) as err:
         exc_type, exc_value, exc_traceback = sys.exc_info()
         print("*** print_exception: ***")
