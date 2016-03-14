@@ -4,6 +4,7 @@
 
 var prefixes = [];
 prefixes.RDF = "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> ";
+prefixes.RDFS = "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> ";
 var endpoint;
 var returnFormat = "JSON";
 

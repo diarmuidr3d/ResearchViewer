@@ -3,7 +3,8 @@ prefixes.RUCD = "PREFIX rucd: <http://diarmuidr3d.github.io/swrc_ont/swrc_UCD.ow
 var domElements = {};
 domElements.graph = 'graph';
 domElements.paperList = 'papers';
-endpoint = 'http://localhost:3030/ucdrr2/query';
+//endpoint = 'http://localhost:3030/ucdrr2/query';
+endpoint = 'http://localhost:3030/rucd/query';
 var colours={};
 colours.author = '#093';
 colours.coauthor = '#f00';
@@ -36,282 +37,13 @@ function createSigma() {
     });
 }
 
-function displayAuthor(uri) {
-    hideSearch(true);
-    var mySigma = createSigma();
-    getPapersAuthored(uri, displayPapers);
-    var graph = mySigma.graph;
-    var authorSize = 2;
-    graph.addNode({
-        id: uri,
-        x:0,
-        y:0,
-        color: colours.author,
-        size: authorSize
-    });
-    getCoAuthorLinks();
-    //setTimeout(getCoAuthors, 0);
-    //setTimeout(getCoAuthors2, 0);
-    getAuthorName(uri, graph);
-    var mouseOverPapers = {};
-    mySigma.bind('overNode', mouseNode);
-    mySigma.bind('outNode', mouseNode);
-    mySigma.bind('clickNode', function(e) {
-        var nodeId = e.data.node.id;
-        if(nodeId != uri) {
-            displayAuthor(nodeId);
-        }
-    });
-    function mouseNode(e) {
-        var type = e.type;
-        var coAuthUri = e.data.node.id;
-        if(coAuthUri in mouseOverPapers) {
-            toggle(mouseOverPapers[coAuthUri], type);
-        } else {
-            getCoauthoredPapers(coAuthUri,extractBindings);
-        }
-        function extractBindings(data) {
-            var bindings = data.results.bindings;
-            if(type == 'overNode') mouseOverPapers[coAuthUri] = bindings;
-            toggle(bindings, type);
-        }
-        function toggle(uriArray, type) {
-            var papers = $('#'+domElements.paperList);
-            var paperElem = document.getElementById(uriArray[0].paper.value);
-            if(paperElem != null) {
-                if(type === 'overNode') {
-                    papers.animate({
-                        scrollTop: papers.scrollTop() + $(paperElem).position().top
-                    }, 'slow');
-                }
-                for (var rowId in uriArray) {
-                    var paper = uriArray[rowId].paper.value;
-                    if(type === 'overNode') {
-                        document.getElementById(paper).className += " active";
-                    } else {
-                        document.getElementById(paper).className = document.getElementById(paper).className.replace(/\bactive\b/,'');
-                    }
-                }
-            }
-        }
-    }
-    function getCoauthoredPapers(coAuthUri, callback) {
-        var queryString = prefixes.RUCD + "SELECT ?paper WHERE {\n" +
-            "<" + uri + "> rucd:publication ?paper .\n" +
-            "<" + coAuthUri + "> rucd:publication ?paper .\n" +
-            "}";
-        query(queryString, callback);
-    }
-    function getCoAuthorLinks() {
-        var directQuery = prefixes.RDF + prefixes.RUCD + "SELECT ?coauthor ?coauthor2  (COUNT (?paper) as ?weight) " +
-            "WHERE { " +
-            "<" + uri + "> rucd:cooperatesWith ?coauthor . " +
-            "<" + uri + "> rucd:publication ?paper . " +
-            "?coauthor rucd:publication ?paper . " +
-            "?coauthor rucd:cooperatesWith ?coauthor2 . " +
-            "?coauthor2 rucd:cooperatesWith <" + uri + "> . " +
-            "} GROUP BY ?coauthor ?coauthor2 ";
-        query(directQuery, addDirectCoAuthorLinks);
-    }
-    function getCoAuthors() {
-        var queryString = prefixes.RDF + prefixes.RUCD + "SELECT ?coauthor ?firstName ?lastName (COUNT (?paper) AS ?weight) " +
-            "WHERE { " +
-            "<" + uri + "> rucd:cooperatesWith ?coauthor . " +
-            "<" + uri + "> rucd:publication ?paper . " +
-            "?coauthor rucd:publication ?paper . " +
-            "?coauthor rucd:firstName ?firstName . " +
-            "?coauthor rucd:lastName ?lastName . " +
-            "} " +
-            "GROUP BY ?coauthor ?firstName ?lastName ";
-        query(queryString, addCoAuthors);
-    }
-    //function getCoAuthors2() {
-    //    var queryString = prefixes.RDF + prefixes.RUCD +
-    //        "SELECT ?id (CONCAT(STR(?lastName), ', ', STR(?firstName)) AS ?label) (COUNT (?paper) AS ?weight) " +
-    //        "WHERE { " +
-    //        "<" + uri + "> rucd:cooperatesWith ?id . " +
-    //        "<" + uri + "> rucd:publication ?paper . " +
-    //        "?id rucd:publication ?paper . " +
-    //        "?id rucd:firstName ?firstName . " +
-    //        "?id rucd:lastName ?lastName . " +
-    //        "} " +
-    //        "GROUP BY ?id ?firstName ?lastName ?label";
-    //    query(queryString, addCoAuthors2);
-    //}
-    //function addCoAuthors2(data) {
-    //    addNodesCircle(uri, data, mySigma, 10, colours.coauthor);
-    //    setTimeout(getCoAuthorLinks, 0);
-    //}
-    function addDirectCoAuthorLinks(data) {
-        var bindings = data.results.bindings;
-        if (bindings.length > 1 || bindings[0].weight.value != 0) {
-            for(var rowId in bindings) {
-                var row = bindings[rowId];
-                var coauthor1 = row.coauthor.value;
-                var coauthor2 = row.coauthor2.value;
-                if(typeof graph.nodes(coauthor1) === 'undefined') {
-                    graph.addNode({
-                        id: coauthor1,
-                        x: Math.random(),
-                        y: Math.random(),
-                        color: colours.coauthor
-                    });
-                }
-                if(typeof graph.nodes(coauthor2) === 'undefined') {
-                    graph.addNode({
-                        id: coauthor2,
-                        x: Math.random(),
-                        y: Math.random(),
-                        color: colours.coauthor
-                    });
-                }
-                if((typeof graph.edges(coauthor1+coauthor2) === 'undefined') && typeof graph.edges(coauthor2+coauthor1) === 'undefined') {
-                    graph.addEdge({
-                        id: coauthor1 + coauthor2,
-                        source: coauthor1,
-                        target: coauthor2,
-                        color: colours.coauthorEdge,
-                        size: parseInt(row.weight.value),
-                        type: edgeType,
-                        priority: 1
-                    });
-                }
-            }
-        }
-        getCoAuthors();
-    }
-    function addCoAuthors(data) {
-        var bindings = data.results.bindings;
-        if (bindings.length > 1 || bindings[0].weight.value != 0) {
-            for (var rowId in bindings) {
-                var row = bindings[rowId];
-                var coauthor = row.coauthor.value;
-                var size = parseInt(row.weight.value);
-                if (size > authorSize) {
-                    var authorNode = graph.nodes(uri);
-                    //authorSize = size + (size * 0.2);
-                    authorSize = size;
-                    authorNode["size"] = authorSize;
-                    mySigma.refresh();
-                }
-                var coauth = graph.nodes(coauthor);
-                if (typeof coauth === 'undefined') {
-                    graph.addNode({
-                        id: coauthor,
-                        x: Math.random(),
-                        y: Math.random(),
-                        size: size,
-                        color: colours.coauthor,
-                        label: row.lastName.value + ", " + row.firstName.value
-                    });
-                } else {
-                    coauth.size = size;
-                    coauth.label = row.lastName.value + ", " + row.firstName.value;
-                }
-                graph.addEdge({
-                    id: uri + coauthor,
-                    source: uri,
-                    target: coauthor,
-                    size: size,
-                    type: edgeType,
-                    priority: 2
-                });
-            }
-        }
-        finish(mySigma);
-    }
-    function displayPapers(data) {
-        var container = $('#'+domElements.paperList);
-        container.html('');
-        var list = $("<div></div>");
-        container.append(list);
-        list.addClass("list-group");
-        var bindings = data.results.bindings;
-        for(var i in bindings) {
-            var row = bindings[i];
-            var item = $("<a></a>");
-            item.addClass("list-group-item");
-            item.attr("href", "#");
-            item.attr("id", row.id.value);
-            item.click(function(args){toggleNodesForPaper($(args.target).attr("id"), mySigma)});
-            item.append(row.label.value);
-            list.append(item);
-        }
-    }
-    var previouspaper = null;
-    function toggleNodesForPaper(paperId, sigmaInst) {
-        console.log(previouspaper, " == ", paperId);
-        if(paperId == previouspaper) {
-            previouspaper = null;
-            var nodes = graph.nodes();
-            for(var rowId in nodes) {
-                setColour(nodes[rowId].id);
-            }
-            var edges = graph.edges();
-            for(var rowIdx in edges) {
-                setEdgeColor(edges[rowIdx]);
-            }
-            sigmaInst.refresh();
-        } else {
-            previouspaper = paperId;
-            var queryString = prefixes.RUCD + "SELECT ?author WHERE { " +
-                "?author rucd:publication <" + paperId + "> . " +
-                "}";
-            query(queryString, toggleNodes);
-        }
-        function toggleNodes(data) {
-            var bindings = data.results.bindings;
-            var nodes = sigmaInst.graph.nodes();
-            for (var rowIdx in nodes) {
-                nodes[rowIdx].color = colours.opaque;
-            }
-            var edges = sigmaInst.graph.edges();
-            for(var rowIdy in edges) {
-                edges[rowIdy].color = colours.opaque;
-            }
-            var seenNodes = [];
-            for (var rowId in bindings) {
-                var nodeId = bindings[rowId].author.value;
-                setColour(nodeId);
-                var incidentEdges = graph.getIncident(nodeId);
-                for(var neighbour in incidentEdges) {
-                    if($.inArray(neighbour, seenNodes) > -1) {
-                        var edgeArr = incidentEdges[neighbour];
-                        //There should only ever be one node in here
-                        for(var edge in edgeArr) {
-                            setEdgeColor(edgeArr[edge]);
-                        }
-                    }
-                }
-                seenNodes.push(nodeId);
-            }
-            sigmaInst.refresh();
-        }
-        function setColour(node) {
-            var color = colours.coauthor;
-            if(node == uri) {
-                color = colours.author;
-            }
-            sigmaInst.graph.nodes(node).color = color;
-        }
-        function setEdgeColor(edge) {
-            if(edge.source == uri || edge.target == uri) {
-                edge.color = colours.author;
-            } else {
-                edge.color = colours.coauthorEdge;
-            }
-        }
-    }
-}
+
+
 function finish(mySigma) {
-    mySigma.refresh();
-    mySigma.startForceAtlas2({worker: true, barnesHutOptimize: false});
-    //var fa = sigma.layouts.startForceLink(mySigma, {});
-    setTimeout(stopForceAtlas, mySigma.graph.nodes().length * layoutRuntimeScale);
-    //sigma.layouts.fruchtermanReingold.start(mySigma, {});
+    //mySigma.startForceAtlas2({worker: true, barnesHutOptimize: false});
+    //setTimeout(stopForceAtlas, mySigma.graph.nodes().length * layoutRuntimeScale);
 
     mySigma.refresh();
-    //s.stopForceAtlas2();
 
     function stopForceAtlas() {
         mySigma.stopForceAtlas2();
@@ -319,146 +51,39 @@ function finish(mySigma) {
         //sigma.layouts.killForceLink();
     }
 
-    //sigma.layouts.startForceLink(mySigma, {autoStop: true});
-    //sigma.layouts.fruchtermanReingold.start(mySigma, {autoArea: true});
+    sigma.layouts.fruchtermanReingold.start(mySigma, {autoArea: true});
 }
 
-function displayCoAuthorPath(fromUri, toUri) {
-    var lastPathLength = 0;
-    anyPath();
-    function anyPath() {
-        query(prefixes.RUCD + "SELECT ?mid WHERE {\n" +
-            "	<" + fromUri + "> rucd:cooperatesWith+ ?mid .\n" +
-            "	?mid rucd:cooperatesWith <" + toUri + "> .\n" +
-            "}", resultFunc);
-        function resultFunc(data) {
-            var bindings = data.results.bindings;
-            if(bindings.length > 0) {
-                pathQuery2(lastPathLength);
-            }
-        }
-    }
-    function pathQuery2(length) {
-        var i = 0;
-        var selectString = prefixes.RUCD + 'SELECT (CONCAT( ';
-        var queryString = "WHERE {\n" +
-            "	<" + fromUri + "> rucd:cooperatesWith ?coauthor" + i + " . \n";
-        while(i < length) {
-            var next = i + 1;
-            selectString += 'STR(?coauthor' + i + '), ",",';
-            queryString += "	?coauthor" + i + " rucd:cooperatesWith ?coauthor" + next + " . \n";
-            //for (var k = i; k > 0; k--) {
-            //    var prev = k - 1;
-            //    queryString += "	FILTER (?coauthor" + k + " != ?coauthor" + prev + ") .\n"
-            //}
-            i++;
-        }
-        selectString += 'STR(?coauthor' + i + ')) AS ?link)\n';
-        queryString += "	?coauthor" + i + " rucd:cooperatesWith <" + toUri + "> .\n" +
-            "}";
-        query(selectString + queryString, pathResult);
 
-        function pathResult(data) {
-            var bindings = data.results.bindings;
-            console.log("Path query ran", bindings);
-            if(bindings.length == 0 && length < pathQueryLen) {
-                pathQuery2(length + 1);
-            } else if (bindings.length > 0) {
-                var paths = [];
-                for(var i = 0; i < bindings.length; i++) {
-                    var row = bindings[i].link.value;
-                    paths.push(extractPath(row));
-                }
-                drawPathGraph(paths);
-            }
-        }
-        function extractPath(pathString) {
-            var nodes = [];
-            while(pathString.indexOf(',') != -1) {
-                nodes.push(pathString.substring(0,pathString.indexOf(',')));
-                pathString = pathString.substring(pathString.indexOf(',') + 1, pathString.length);
-            }
-            nodes.push(pathString);
-            return nodes
-        }
-    }
-    function drawPathGraph(paths) {
-        var mySigma = createSigma();
-        var graph = mySigma.graph;
-        var ypos = paths.length / 2;
-        graph.addNode({
-            id: fromUri,
-            x:-1,
-            y:ypos,
-            color: colours.author,
-            size: 1
-        });
-        getAuthorName(fromUri, graph);
-        graph.addNode({
-            id: toUri,
-            x:paths[0].length,
-            y:ypos,
-            color: colours.author,
-            size: 1
-        });
-        getAuthorName(toUri, graph);
-        var previous = fromUri;
-        for(var i in paths) {
-            var path = paths[i];
-            var j = 0;
-            while(j < path.length) {
-                var nodeId = path[j];
-                if(typeof graph.nodes(nodeId) === 'undefined') {
-                    graph.addNode({
-                        id: nodeId,
-                        x: j,
-                        y: i,
-                        color: colours.coauthor,
-                        size: 1
-                    });
-                    getAuthorName(nodeId, graph);
-                }
-                var edgeId = previous + nodeId;
-                if(typeof graph.edges(edgeId) === 'undefined') {
-                    graph.addEdge({
-                        id: edgeId,
-                        source: previous,
-                        target: nodeId,
-                        //color: "rgba(255,0,0,0.05)",
-                        size: 1,
-                        type: edgeType
-                    });
-                }
-                previous = nodeId;
-                j++;
-            }
-            var edgeId2 = toUri + previous;
-            if(typeof graph.edges(edgeId2) === 'undefined') {
-                graph.addEdge({
-                    id: edgeId2,
-                    source: toUri,
-                    target: previous,
-                    //color: "rgba(255,0,0,0.05)",
-                    size: 1,
-                    type: edgeType
-                });
-            }
-            previous = fromUri;
-        }
-        //finish(mySigma);
-        mySigma.refresh();
-    }
-}
 function getAuthorName(uri, graph) {
-    var queryString = prefixes.RDF + prefixes.RUCD + "SELECT ?firstName ?lastName " +
+    var queryString = prefixes.RDF + prefixes.RUCD + prefixes.RDFS + "SELECT ?firstName ?lastName ?department " +
         "WHERE { " +
         "<" + uri + "> rucd:firstName ?firstName . " +
         "<" + uri + "> rucd:lastName ?lastName . " +
+        "OPTIONAL { <" + uri + "> rucd:affiliation ?affiliation . " +
+        " ?affiliation rdfs:label ?department } . " +
         "} ";
+    console.log(queryString);
     query(queryString, addAuthor);
     function addAuthor(data) {
         var row = data.results.bindings[0];
+        console.log(row);
         graph.nodes(uri)["label"] =  row.lastName.value + ", " + row.firstName.value;
+        var colour = colours.author;
+        var department = "No Department";
+        if ("department" in row) {
+            department = row["department"].value;
+        }
+        if(department in colours.departments) {
+            colour = colours.departments[department];
+        } else {
+            var rgb = getRandomColour();
+            colour = 'rgb(' + rgb[0] + "," + rgb[1] + "," + rgb[2] + ")";
+            //colours.departments[department] = colour;
+            colours.departments.put(department, colour);
+        }
+        colours.authors[uri] = colour;
+        graph.nodes(uri).color = colour;
     }
 }
 function findAuthorForm(formId, resultsId, authorClickFunction) {
@@ -642,4 +267,19 @@ function addNodesCircle(fromUri, toNodes, sigmaInstance, radius, nodeColour) {
         })
     }
     sigmaInstance.refresh();
+}
+
+
+function getRandomColour() {
+    var r = getRandomInt(0, 255);
+    var g = getRandomInt(0, 255);
+    var b = getRandomInt(0, 255);
+    return [r,g,b];
+}
+
+// From Mozilla Developer Network: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/random
+// Returns a random integer between min (included) and max (excluded)
+// Using Math.round() will give you a non-uniform distribution!
+function getRandomInt(min, max) {
+  return Math.floor(Math.random() * (max - min)) + min;
 }
