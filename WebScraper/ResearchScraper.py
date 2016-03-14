@@ -126,9 +126,8 @@ def split_author_name(name):
                 "first": name[last_name_index:]
                 }
 
-department_rdf = {}
 
-def get_departments(page_domain, url, process_pool):
+def get_departments(page_domain, url):
     """
     Gets the Colleges and Schools from the relevant page and adds them and their authors to the graph
     :param page_domain: The website domain
@@ -148,36 +147,14 @@ def get_departments(page_domain, url, process_pool):
         school_links = college.xpath("ul/li/div/div/a/@href".format(index))
         print("schools for ", name, " are ", school_links)
         college_rdf = swrc.add_college(link, name, uni)
-        department_rdf[name] = college_rdf
         for school_link, school_name in zip(school_links, school_names):
             print("Adding school {0}".format(school_name))
             dept = swrc.add_school(school_link, school_name, college_rdf)
-            department_rdf[school_name] = dept
             # print(school["authors"])
             # for author in school["authors"]:
             #     if author != None: # If the author isn't et al.
             #         swrc.add_affiliation(author_uri=author["uri"], organisation_rdf=dept)
         index += 1
-
-
-def get_department_authors(authors: [{}]):
-    """
-    :param authors:
-    """
-    coverage = 0
-    for author in authors:
-        print("Finding: ", author)
-        name_page = get_page_for_name(author["lastName"] + ", " + author["firstName"])
-        if name_page is not None:
-            school = get_school_from_page(name_page)
-            if school is not None and school in department_rdf:
-                swrc.add_affiliation(author_uri=author["uri"], organisation_rdf=department_rdf[school])
-                coverage += 1
-            else:
-                print("********************* Error 404: we lost the ", school)
-    print("total coverage of authors in research repository: ", coverage/len(authors))
-
-
 
 if __name__ == '__main__':
     domain = 'http://researchrepository.ucd.ie'
@@ -206,8 +183,7 @@ if __name__ == '__main__':
                 swrc.add_paper(paper["uri"], paper["type"], paper["title"], paper["authors"])
             print(i)
             i += 1
-        get_departments(domain, departments_link, pool)
-        get_department_authors(swrc.get_authors())
+        get_departments(domain, departments_link)
     except (KeyboardInterrupt, SystemExit, Exception) as err:
         exc_type, exc_value, exc_traceback = sys.exc_info()
         print("*** print_exception: ***")

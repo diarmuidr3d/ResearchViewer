@@ -58,6 +58,18 @@ class SWRC:
             author_array.append({"uri":author, "firstName": fname, "lastName": lname})
         return author_array
 
+    def get_department_names_to_uri(self):
+        return {**self.get_labels_for_type(self.ucd_ns.University),
+                **self.get_labels_for_type(self.ucd_ns.College),
+                **self.get_labels_for_type(self.ucd_ns.School)}
+
+    def get_labels_for_type(self, subject_type):
+        return_values = {}
+        for subject in self.graph.subjects(RDF.type, subject_type):
+            label = str(self.graph.value(subject=subject, predicate=RDFS.label).value)
+            return_values[label] = subject
+        return return_values
+
     def add_paper(self, uri, type, name, authors=None):
         """
         Adds a paper to the graph
@@ -182,7 +194,9 @@ class SWRC:
         :param college_rdf: A College Resource of which the school is part
         :return: A resource for the school
         """
-        school = self.graph.resource(uri)
+        if uri[0] == '/' or uri[0] == '#':
+            uri = uri[1:]
+        school = self.graph.resource(self.uri + uri)
         school.set(RDF.type, self.ucd_ns.School)
         name = Literal(name, datatype=XSD.string)
         school.set(RDFS.label, name)
