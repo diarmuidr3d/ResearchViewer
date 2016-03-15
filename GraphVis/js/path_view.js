@@ -12,7 +12,9 @@ function displayCoAuthorPath(fromUri, toUri) {
             "}", resultFunc);
         function resultFunc(data) {
             var bindings = data.results.bindings;
+                console.log(data);
             if(bindings.length > 0) {
+                console.log("There is a path");
                 pathQuery2(lastPathLength);
             }
         }

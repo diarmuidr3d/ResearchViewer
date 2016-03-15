@@ -8,7 +8,10 @@
     <script src="sparql/sparql.js"></script>
     <script src="sparql/researchVis.js"></script>
     <script src="jquery/jquery.js"></script>
-    <script src="sigma_js/plugins/sigma.layout.forceAtlas2.min.js"></script>
+    <script src="js/path_view.js"></script>
+    <!--<script src="sigma_js/plugins/sigma.layout.forceAtlas2.min.js"></script>-->
+    <script src="sigma_js/plugins/sigma.layout.fruchterman.js"></script>
+    <script src="sigma_js/plugins/sigma.plugins.animate.min.js"></script>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
 </head>
@@ -47,7 +50,7 @@
                         <label for="lastName1">Last Name:</label>
                         <input type="text" class="form-control lastName" id="lastName1" placeholder="Enter a last name to search for">
                     </div>
-                    <button type="submit" class="btn btn-default" onclick="findAuthorForm('authorForm1','searchResults1', pathClick)">Submit</button>
+                    <button type="button" class="btn btn-default" onclick="findAuthorForm('authorForm1','searchResults1', pathClick)">Submit</button>
                 </form>
             </div>
             <div class="col-md-6" id="searchResults1"></div>
@@ -63,7 +66,7 @@
                         <label for="lastName2">Last Name:</label>
                         <input type="text" class="form-control lastName" id="lastName2" placeholder="Enter a last name to search for">
                     </div>
-                    <button type="submit" class="btn btn-default" onclick="findAuthorForm('authorForm2','searchResults2', pathClick)">Submit</button>
+                    <button type="button" class="btn btn-default" onclick="findAuthorForm('authorForm2','searchResults2', pathClick)">Submit</button>
                 </form>
             </div>
             <div class="col-md-6" id="searchResults2"></div>

@@ -2,7 +2,6 @@
  * Created by Diarmuid on 13/03/2016.
  */
 
-colours.authors = {};
 colours.departments = {};
 
 colours.departments.put = function(deptName, colour) {

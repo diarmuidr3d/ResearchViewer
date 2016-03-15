@@ -7,6 +7,7 @@ domElements.paperList = 'papers';
 endpoint = 'http://localhost:3030/rucd/query';
 var colours={};
 colours.author = '#093';
+colours.authors = {};
 colours.coauthor = '#f00';
 colours.paper = '#00f';
 colours.coauthorEdge = 'rgba(255,0,0,0.4)';
@@ -74,13 +75,16 @@ function getAuthorName(uri, graph) {
         if ("department" in row) {
             department = row["department"].value;
         }
-        if(department in colours.departments) {
-            colour = colours.departments[department];
-        } else {
-            var rgb = getRandomColour();
-            colour = 'rgb(' + rgb[0] + "," + rgb[1] + "," + rgb[2] + ")";
-            //colours.departments[department] = colour;
-            colours.departments.put(department, colour);
+        console.log(colours.departments);
+        if (!(colours.departments == undefined)) {
+            if (department in colours.departments) {
+                colour = colours.departments[department];
+            } else {
+                var rgb = getRandomColour();
+                colour = 'rgb(' + rgb[0] + "," + rgb[1] + "," + rgb[2] + ")";
+                //colours.departments[department] = colour;
+                colours.departments.put(department, colour);
+            }
         }
         colours.authors[uri] = colour;
         graph.nodes(uri).color = colour;
