@@ -3,6 +3,7 @@
  */
 
 colours.departments = {};
+colours.edges = {};
 
 colours.departments.put = function(deptName, colour) {
     colours.departments[deptName] = colour;
@@ -239,7 +240,9 @@ function displayAuthor(uri) {
             }
             var edges = sigmaInst.graph.edges();
             for(var rowIdy in edges) {
-                edges[rowIdy].color = colours.opaque;
+                var thisEdge = edges[rowIdy];
+                colours.edges[thisEdge.id] = thisEdge.color;
+                thisEdge.color = colours.opaque;
             }
             var seenNodes = [];
             for (var rowId in bindings) {
@@ -264,11 +267,12 @@ function displayAuthor(uri) {
             sigmaInst.graph.nodes(node).color = color;
         }
         function setEdgeColor(edge) {
-            if(edge.source == uri || edge.target == uri) {
-                edge.color = colours.author;
-            } else {
-                edge.color = colours.coauthorEdge;
-            }
+            //if(edge.source == uri || edge.target == uri) {
+            //    edge.color = colours.author;
+            //} else {
+            //    edge.color = colours.coauthorEdge;
+            //}
+            edge.color = colours.edges[edge.id];
         }
     }
 }
