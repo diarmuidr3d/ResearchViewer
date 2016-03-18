@@ -4,7 +4,7 @@ var domElements = {};
 domElements.graph = 'graph';
 domElements.paperList = 'papers';
 //endpoint = 'http://localhost:3030/ucdrr2/query';
-endpoint = 'http://localhost:3030/rucd/query';
+endpoint = 'http://localhost:3030/rucd2/query';
 var colours={};
 colours.author = '#093';
 colours.authors = {};
@@ -41,22 +41,14 @@ function createSigma() {
 
 
 function finish(mySigma) {
-    //mySigma.startForceAtlas2({worker: true, barnesHutOptimize: false});
-    //setTimeout(stopForceAtlas, mySigma.graph.nodes().length * layoutRuntimeScale);
-
     mySigma.refresh();
-
-    function stopForceAtlas() {
-        mySigma.stopForceAtlas2();
-        console.log("Killed force atlas");
-        //sigma.layouts.killForceLink();
-    }
-
     sigma.layouts.fruchtermanReingold.start(mySigma, {autoArea: true});
+    mySigma.refresh();
+    console.log("Layout finished");
 }
 
 
-function getAuthorName(uri, graph) {
+function getAuthorName(uri, mySigma) {
     var queryString = prefixes.RDF + prefixes.RUCD + prefixes.RDFS + "SELECT ?firstName ?lastName ?department " +
         "WHERE { " +
         "<" + uri + "> rucd:firstName ?firstName . " +
@@ -67,6 +59,7 @@ function getAuthorName(uri, graph) {
     console.log(queryString);
     query(queryString, addAuthor);
     function addAuthor(data) {
+        var graph = mySigma.graph;
         var row = data.results.bindings[0];
         console.log(row);
         graph.nodes(uri)["label"] =  row.lastName.value + ", " + row.firstName.value;
@@ -75,7 +68,6 @@ function getAuthorName(uri, graph) {
         if ("department" in row) {
             department = row["department"].value;
         }
-        console.log(colours.departments);
         if (!(colours.departments == undefined)) {
             if (department in colours.departments) {
                 colour = colours.departments[department];
@@ -88,6 +80,7 @@ function getAuthorName(uri, graph) {
         }
         colours.authors[uri] = colour;
         graph.nodes(uri).color = colour;
+        mySigma.refresh();
     }
 }
 function findAuthorForm(formId, resultsId, authorClickFunction) {

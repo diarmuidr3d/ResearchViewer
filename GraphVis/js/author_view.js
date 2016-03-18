@@ -25,7 +25,7 @@ function displayAuthor(uri) {
         size: authorSize
     });
     getCoAuthorLinks();
-    getAuthorName(uri, graph);
+    getAuthorName(uri, mySigma);
     var mouseOverPapers = {};
     mySigma.bind('overNode', mouseNode);
     mySigma.bind('outNode', mouseNode);

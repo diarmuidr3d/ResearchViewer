@@ -74,7 +74,7 @@ function displayCoAuthorPath(fromUri, toUri) {
             color: colours.author,
             size: 1
         });
-        getAuthorName(fromUri, graph);
+        getAuthorName(fromUri, mySigma);
         graph.addNode({
             id: toUri,
             x:paths[0].length,
@@ -82,7 +82,7 @@ function displayCoAuthorPath(fromUri, toUri) {
             color: colours.author,
             size: 1
         });
-        getAuthorName(toUri, graph);
+        getAuthorName(toUri, mySigma);
         var previous = fromUri;
         for(var i in paths) {
             var path = paths[i];
@@ -90,6 +90,7 @@ function displayCoAuthorPath(fromUri, toUri) {
             while(j < path.length) {
                 var nodeId = path[j];
                 if(typeof graph.nodes(nodeId) === 'undefined') {
+                    console.log("adding node: ", nodeId);
                     graph.addNode({
                         id: nodeId,
                         x: j,
@@ -97,7 +98,7 @@ function displayCoAuthorPath(fromUri, toUri) {
                         color: colours.coauthor,
                         size: 1
                     });
-                    getAuthorName(nodeId, graph);
+                    getAuthorName(nodeId, mySigma);
                 }
                 var edgeId = previous + nodeId;
                 if(typeof graph.edges(edgeId) === 'undefined') {
@@ -126,7 +127,9 @@ function displayCoAuthorPath(fromUri, toUri) {
             }
             previous = fromUri;
         }
-        finish(mySigma);
-        mySigma.refresh();
+        //finish(mySigma);
+        //mySigma.refresh();
+        console.log(mySigma.graph);
+        console.log(mySigma.graph.nodes());
     }
 }
