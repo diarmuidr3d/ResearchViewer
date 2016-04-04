@@ -5,10 +5,7 @@ from lxml import html
 import requests
 import sys
 
-from rdflib.resource import Resource
-
-from WebScraper.department_scraper import get_school_from_page, get_page_for_name
-from WebScraper.swrc import SWRC
+from swrc import SWRC
 
 __author__ = 'Diarmuid Ryan'
 
@@ -60,8 +57,7 @@ def get_page_info(url):
     :param url: The URL of the paper
     :return: a list with attributes uri, type, title and authors.
     """
-    domainn = 'http://researchrepository.ucd.ie'
-    url = domainn + url
+    url = domain + url
     print(url)
     page = requests.get(url)
     tree = html.fromstring(page.content)
@@ -171,6 +167,7 @@ if __name__ == '__main__':
         papers = papers + get_category_links("aspect_artifactbrowser_ConfigurableBrowse_div_browse-by-title-results",
                                              title)
         print("Number of papers: {0}".format(len(papers)))
+        print(title)
         title = get_next_page(title, uri_to_use)
     print("Papers got, getting trees now")
     pool = Pool()
@@ -192,5 +189,4 @@ if __name__ == '__main__':
         swrc.output(output_filename)
     # swrc.output(output_filename, 'http://localhost:3030/rucd/update')
     swrc.output(output_filename)
-    # swrc.get_authors()
-# TODO: Add editors
+    swrc.count_authors()

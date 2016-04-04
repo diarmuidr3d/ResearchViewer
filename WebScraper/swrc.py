@@ -1,5 +1,4 @@
 from rdflib import Graph, Namespace, RDF, Literal, URIRef, XSD, RDFS
-from WebScraper.graph_load import rdflib_put
 
 __author__ = 'diarmuid'
 
@@ -51,6 +50,10 @@ class SWRC:
             return False
 
     def get_authors(self):
+        """
+        Gets all authors from the graph
+        :return: a list of dictionaries where the values in the dictionary are uri, firstName and lastName
+        """
         author_array = []
         for author in self.graph.subjects(RDF.type, self.ucd_ns.AcademicStaff):
             fname = self.graph.value(subject=author, predicate=self.ucd_ns.firstName).value
@@ -59,11 +62,20 @@ class SWRC:
         return author_array
 
     def get_department_names_to_uri(self):
+        """
+        Gets a list dictionary of names to URIs for all departments
+        :return:
+        """
         return {**self.get_labels_for_type(self.ucd_ns.University),
                 **self.get_labels_for_type(self.ucd_ns.College),
                 **self.get_labels_for_type(self.ucd_ns.School)}
 
     def get_labels_for_type(self, subject_type):
+        """
+        Gets the rdfs:label of all objects of a type and returns a dictionary of labels to URI
+        :param subject_type: the type of object
+        :return: a dictionary of labels to URI
+        """
         return_values = {}
         for subject in self.graph.subjects(RDF.type, subject_type):
             label = str(self.graph.value(subject=subject, predicate=RDFS.label).value)
@@ -229,8 +241,8 @@ class SWRC:
         if filename != None:
             output_file = open(filename, "wb")
             self.graph.serialize(destination=output_file, format='n3', auto_compact=True)
-        if endpoint != None:
-            rdflib_put(self.graph, endpoint)
+        # if endpoint != None:
+        #     rdflib_put(self.graph, endpoint)
 
     def count_authors(self):
         """
@@ -239,7 +251,7 @@ class SWRC:
         """
         result = self.graph.query(
             """
-            PREFIX swrc: <http://swrc.ontoware.org/ontology#>
+            PREFIX swrc: <http://diarmuidr3d.github.io/swrc_ont/swrc_UCD.owl#>
             SELECT (COUNT(DISTINCT ?a) AS ?count)
             WHERE { ?a rdf:type swrc:AcademicStaff }
             """
