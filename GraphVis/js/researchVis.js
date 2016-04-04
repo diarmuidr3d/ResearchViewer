@@ -1,10 +1,17 @@
 prefixes.RUCD = "PREFIX rucd: <http://diarmuidr3d.github.io/swrc_ont/swrc_UCD.owl#> ";
 
+/**
+ * The DOM Elements in the web page that will be used to display content for the visualisation
+ * @type {{graph: string, paperList: string, departments: string}}
+ */
 var domElements = {};
 domElements.graph = 'graph';
 domElements.paperList = 'papers';
-//endpoint = 'http://localhost:3030/ucdrr2/query';
-endpoint = 'http://localhost:3030/rucd2/query';
+domElements.departments = '#key-content';
+
+/**
+ * The colours to be used for the visualisation
+ */
 var colours={};
 colours.author = '#093';
 colours.authors = {};
@@ -13,20 +20,38 @@ colours.coauthor = '#f00';
 colours.paper = '#00f';
 colours.coauthorEdge = 'rgba(255,0,0,0.4)';
 colours.opaque = "#ccc";
-var pathQueryLen = 6;
-var layoutRuntimeScale = 30;
+
+endpoint = 'http://localhost:3030/rucd2/query';
 var edgeType = 'curve';
 
+/**
+ * The maximum length of the path in the Path View
+ * @type {number}
+ */
+var pathQueryLen = 6;
+
+/**
+ * Setter for the department colours to ensure it is added to the department list
+ * @param deptName The name of the department
+ * @param colour the colour to be associated with that department
+ */
 colours.departments.put = function(deptName, colour) {
     colours.departments[deptName] = colour;
     console.log(colour);
-    $('#key-content').append('<tr><td style="background-color: ' + colour + '"></td><td>' + deptName + "</td></tr>");
+    $(domElements.departments).append('<tr><td style="background-color: ' + colour + '"></td><td>' + deptName + "</td></tr>");
 };
 
+/**
+ * Adds a function to the graph to retreive the edges incident to a node
+ */
 sigma.classes.graph.addMethod('getIncident', function(nodeId) {
     return this.allNeighborsIndex[nodeId];
 });
 
+/**
+ * Creates a new instance of a Sigma Graph
+ * @returns {*|b} a new instance of a Sigma Graph
+ */
 function createSigma() {
     $('#'+domElements.graph).html('');
     return new sigma({
@@ -45,8 +70,10 @@ function createSigma() {
     });
 }
 
-
-
+/**
+ * Refreshes the Sigma instance and runs the layout
+ * @param mySigma an instance of Sigma
+ */
 function finish(mySigma) {
     mySigma.refresh();
     sigma.layouts.fruchtermanReingold.start(mySigma, {autoArea: true});
@@ -54,7 +81,11 @@ function finish(mySigma) {
     console.log("Layout finished");
 }
 
-
+/**
+ * Gets the name of an author with uri and sets it as the label for that author in the graph
+ * @param uri the URI of the author to get the name for
+ * @param mySigma an instance of Sigma js
+ */
 function getAuthorName(uri, mySigma) {
     var queryString = prefixes.RDF + prefixes.RUCD + prefixes.RDFS + "SELECT ?firstName ?lastName ?department " +
         "WHERE { " +
@@ -90,11 +121,26 @@ function getAuthorName(uri, mySigma) {
         mySigma.refresh();
     }
 }
+/**
+ * Handling submission of the author search. Calls findAuthor.
+ * @param formId - the Id of the form on which the Submit button was clicked
+ * @param resultsId - the Id of the DOM ELement in which to place the results
+ * @param authorClickFunction - the function which will be passed to findAuthor
+ */
 function findAuthorForm(formId, resultsId, authorClickFunction) {
     var firstName = $('#'+formId+' > div > .firstName');
     var lastName = $('#'+formId+' > div > .lastName');
     findAuthor(firstName.val(),lastName.val(),resultsId, authorClickFunction);
 }
+
+/**
+ * Searches the database for an author and displays the results in resultsId DOM Element.
+ * ClickFunction is performed when an author is selected from these results
+ * @param firstName - the first name of the author to search for
+ * @param lastname - the last name of the author to search for
+ * @param resultsId - The Id of a DOM Element in which to display the results
+ * @param clickFunction - The function to be performed when one of these results is clicked
+ */
 function findAuthor(firstName, lastname, resultsId, clickFunction) {
     var queryString = prefixes.RUCD + "SELECT ?author ?firstName ?lastName WHERE {\n";
     if(typeof firstName != 'undefined' && firstName != "") {
@@ -132,6 +178,11 @@ function findAuthor(firstName, lastname, resultsId, clickFunction) {
         }
     }
 }
+
+/**
+ * Hides / Unhides the search area on the web page
+ * @param override - always hides the area if true
+ */
 function hideSearch(override) {
     var search = $("#searchArea");
     var hideButton = $("#hideSearch");
@@ -143,6 +194,12 @@ function hideSearch(override) {
         hideButton.html('<span class="glyphicon glyphicon-chevron-up"></span>Hide Search');
     }
 }
+
+/**
+ * Creates a query to get all papers authored by this author
+ * @param authorUri - the Uri of the author to get
+ * @param callback - The function to pass the query to
+ */
 function getPapersAuthored(authorUri, callback) {
     var queryString = prefixes.RUCD +
         "SELECT ?id ?label WHERE {\n" +
@@ -151,7 +208,14 @@ function getPapersAuthored(authorUri, callback) {
         "}";
     query(queryString, callback);
 }
+
 var pathAuthors={};
+
+/**
+ * The action that is performed when an author is selected from the search results on the path view
+ * @param uri - the uri of the author that was selected
+ * @param authorNum
+ */
 function pathClick(uri, authorNum) {
     pathAuthors[authorNum] = uri;
     if(Object.keys(pathAuthors).length > 1) {
@@ -165,72 +229,7 @@ function pathClick(uri, authorNum) {
         hideSearch();
     }
 }
-function displayBipartiteGraphAuthor(authorUri) {
-    hideSearch(true);
-    var mySigma = createSigma();
-    var graph = mySigma.graph;
-    graph.addNode({
-        id: authorUri,
-        x:0,
-        y:0,
-        color: colours.author,
-        size: 1
-    });
-    mySigma.bind('clickNode', function(e) {
-        var nodeId = e.data.node.id;
-        if(nodeId != authorUri) {
-            displayBipartiteGraphPaper(nodeId);
-        }
-    });
-    getAuthorName(authorUri, graph);
-    getPapersAuthored(authorUri, addPapers);
-    function addPapers(data) {
-        addNodesCircle(authorUri, data, mySigma, 10, colours.paper);
-    }
-}
-function getPaperName(paperUri, graph) {
-    var queryString = prefixes.RDF + prefixes.RUCD + "SELECT ?title " +
-        "WHERE { " +
-        "<" + paperUri + "> rucd:title ?title . " +
-        "} ";
-    query(queryString, addAuthor);
-    function addAuthor(data) {
-        var row = data.results.bindings[0];
-        graph.nodes(paperUri)["label"] =  row.title.value;
-    }
-}
-function getPaperAuthors(paperUri, callback) {
-    var queryString = prefixes.RUCD +
-        "SELECT ?id (CONCAT(STR(?lastName), ', ', STR(?firstName)) AS ?label) WHERE {\n" +
-        "?id rucd:publication <" + paperUri + "> . \n" +
-        "?id rucd:firstName ?firstName . " +
-        "?id rucd:lastName ?lastName . " +
-        "}";
-    query(queryString, callback);
-}
-function displayBipartiteGraphPaper(paperUri) {
-    hideSearch(true);
-    var mySigma = createSigma();
-    var graph = mySigma.graph;
-    graph.addNode({
-        id: paperUri,
-        x:0,
-        y:0,
-        color: colours.paper,
-        size: 1
-    });
-    mySigma.bind('clickNode', function(e) {
-        var nodeId = e.data.node.id;
-        if(nodeId != paperUri) {
-            displayBipartiteGraphAuthor(nodeId);
-        }
-    });
-    getPaperName(paperUri, graph);
-    getPaperAuthors(paperUri, addAuthors);
-    function addAuthors(data) {
-        addNodesCircle(paperUri, data, mySigma, 10, colours.author);
-    }
-}
+
 /**
  * This function takes the id of a node (from URI) and the result of a sparql query which
  * has id, label and an optional weight as it's headers and creates a new node for each of these ids,
@@ -273,7 +272,10 @@ function addNodesCircle(fromUri, toNodes, sigmaInstance, radius, nodeColour) {
     sigmaInstance.refresh();
 }
 
-
+/**
+ * Gets a random rgb colour as an array
+ * @returns {*[]} - an array with three elements [r, g, b]
+ */
 function getRandomColour() {
     var r = getRandomInt(0, 255);
     var g = getRandomInt(0, 255);

@@ -1,10 +1,19 @@
 /**
- * Created by Diarmuid Ryan on 13/03/2016.
+ * Created by Diarmuid.
  */
 
+/**
+ * Displays the path between two authors in the network (if one exists).
+ * @param fromUri the URI of the author to get the path from
+ * @param toUri the URI of the author to complete the path at
+ */
 function displayCoAuthorPath(fromUri, toUri) {
     var lastPathLength = 0;
     anyPath();
+
+    /**
+     * Checks if any path exists between the two nodes
+     */
     function anyPath() {
         query(prefixes.RUCD + "SELECT ?mid WHERE {\n" +
             "	<" + fromUri + "> rucd:cooperatesWith+ ?mid .\n" +
@@ -19,6 +28,13 @@ function displayCoAuthorPath(fromUri, toUri) {
             }
         }
     }
+
+    /**
+     * Recursive function to find the shortest path between two nodes.
+     * Recursively tries to find a longer and longer path. Gives up once length >= pathQueryLen
+     * If a path is found, drawPathGraph is called.
+     * @param length The length of the path to try and find
+     */
     function pathQuery2(length) {
         var i = 0;
         var selectString = prefixes.RUCD + 'SELECT (CONCAT( ';
@@ -28,10 +44,6 @@ function displayCoAuthorPath(fromUri, toUri) {
             var next = i + 1;
             selectString += 'STR(?coauthor' + i + '), ",",';
             queryString += "	?coauthor" + i + " rucd:cooperatesWith ?coauthor" + next + " . \n";
-            //for (var k = i; k > 0; k--) {
-            //    var prev = k - 1;
-            //    queryString += "	FILTER (?coauthor" + k + " != ?coauthor" + prev + ") .\n"
-            //}
             i++;
         }
         selectString += 'STR(?coauthor' + i + ')) AS ?link)\n';
@@ -63,6 +75,11 @@ function displayCoAuthorPath(fromUri, toUri) {
             return nodes
         }
     }
+
+    /**
+     * Draws the graph for the path between fromUri and toUri
+     * @param paths is an array of comma-separated strings of author uris representing the paths between authors
+     */
     function drawPathGraph(paths) {
         var mySigma = createSigma();
         var graph = mySigma.graph;
@@ -106,7 +123,6 @@ function displayCoAuthorPath(fromUri, toUri) {
                         id: edgeId,
                         source: previous,
                         target: nodeId,
-                        //color: "rgba(255,0,0,0.05)",
                         size: 1,
                         type: edgeType
                     });
@@ -127,9 +143,5 @@ function displayCoAuthorPath(fromUri, toUri) {
             }
             previous = fromUri;
         }
-        //finish(mySigma);
-        //mySigma.refresh();
-        console.log(mySigma.graph);
-        console.log(mySigma.graph.nodes());
     }
 }

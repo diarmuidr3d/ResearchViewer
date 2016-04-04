@@ -1,13 +1,32 @@
 /**
- * Created by diarmuid on 06/01/16.
+ * Created by Diarmuid.
  */
 
+/**
+ * An object that can be used to store the prefixes to be used in SPARQL queries
+ * @type {Array}
+ */
 var prefixes = [];
 prefixes.RDF = "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> ";
 prefixes.RDFS = "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> ";
+
+/**
+ * The endpoint to which the SPARQL queries will be sent
+ * @type {string}
+ */
 var endpoint;
+
+/**
+ * The format in which results of the sparql query will be sent
+ * @type {string}
+ */
 var returnFormat = "JSON";
 
+/**
+ * Run a query on the sparql endpoint
+ * @param query {string} - the query to be run
+ * @param successFunction - the function that will be performed if the query returns
+ */
 function query(query, successFunction) {
     if(typeof endpoint === 'undefined' || endpoint == "" || typeof returnFormat === 'undefined' || returnFormat == "") {
         console.log("Query could not be completed because endpoint or return format are not defined");
@@ -32,6 +51,10 @@ function query(query, successFunction) {
 //    });
 //}
 
+/**
+ * Display a table of the results in a #results DOM Element (used for testing purposes).
+ * @param data - the data returned from a SPARQL Query
+ */
 function displayTable(data) {
     var table = $("#results");
     var headerVars = data.head.vars;
@@ -63,58 +86,5 @@ function displayTable(data) {
         var fieldData = rowData[fieldName];
         td.html(fieldData["value"]);
         return td;
-    }
-}
-
-function displayTypeCentricGraph(typeUri, linkUri, endpoint) {
-    var s;
-
-    var queryString = prefixes + "SELECT ?sub ?obj " +
-        "WHERE { ?sub rdf:type <" + typeUri + "> . ?obj rdf:type <" + typeUri + "> . " +
-        "?sub <" + linkUri + "> ?obj . " +
-        "}";
-    query(endpoint, queryString, "JSON", visualise);
-
-    function visualise(data) {
-        //var sigma = new sigma({
-        //    renderer: {
-        //        container: document.getElementById('graph   '),
-        //        type: 'canvas'
-        //    }
-        //});
-        s = new sigma('graph');
-        var graph = s.graph;
-        console.log(graph);
-        var bindings = data.results.bindings;
-        console.log(bindings);
-        for(var rowId in bindings) {
-            var row = bindings[rowId];
-            console.log(row);
-            var sub = row["sub"].value;
-            var obj = row["obj"].value;
-            addANode(sub, graph);
-            addANode(obj, graph);
-            s.refresh();
-            graph.addEdge({
-                id: rowId,
-                source: sub.value,
-                target: obj.value
-            });
-        }
-        s.startForceAtlas2({worker: true, barnesHutOptimize: false});
-
-        function addANode(cell, graph) {
-            console.log(cell);
-            try {
-                graph.addNode({
-                    id: cell,
-                    x:0,
-                    y:0,
-                    size: 1
-                });
-            } catch (e) {
-                console.log(e);
-            }
-        }
     }
 }

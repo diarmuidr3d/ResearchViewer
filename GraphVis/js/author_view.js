@@ -1,10 +1,14 @@
 /**
- * Created by Diarmuid on 13/03/2016.
+ * Displays the network graph for the author with the set uri
+ * Created by Diarmuid.
  */
 
 colours.edges = {};
 
-
+/**
+ * Displays the network graph for the author with the set uri
+ * @param {string} uri - The uri of an author on the endpoint
+ */
 function displayAuthor(uri) {
     hideSearch(true);
     var mySigma = createSigma();
@@ -30,6 +34,11 @@ function displayAuthor(uri) {
             displayAuthor(nodeId);
         }
     });
+
+    /**
+     * Highlights the papers on the list which the author being moused over has authored
+     * @param e - The node being moused over
+     */
     function mouseNode(e) {
         var type = e.type;
         var coAuthUri = e.data.node.id;
@@ -63,6 +72,7 @@ function displayAuthor(uri) {
             }
         }
     }
+
     function getCoauthoredPapers(coAuthUri, callback) {
         var queryString = prefixes.RUCD + "SELECT ?paper WHERE {\n" +
             "<" + uri + "> rucd:publication ?paper .\n" +
@@ -70,8 +80,54 @@ function displayAuthor(uri) {
             "}";
         query(queryString, callback);
     }
+
+    /**
+     * Adds the edges between coauthors and their coauthors
+     * This sends a sparql query to the endpoint and then runs addDirectCoAuthorLinks on the result
+     * getCoAuthors is then called once this has completed
+     */
     function getCoAuthorLinks() {
-        var directQuery = prefixes.RDF + prefixes.RUCD + "SELECT ?coauthor ?coauthor2  (COUNT (?paper) as ?weight) " +
+        function addDirectCoAuthorLinks(data) {
+            var bindings = data.results.bindings;
+            if (bindings.length > 1 || bindings[0].weight.value != 0) {
+                for(var rowId in bindings) {
+                    var row = bindings[rowId];
+                    var coauthor1 = row.coauthor.value;
+                    var coauthor2 = row.coauthor2.value;
+                    if(typeof graph.nodes(coauthor1) === 'undefined') {
+                        graph.addNode({
+                            id: coauthor1,
+                            x: Math.random(),
+                            y: Math.random(),
+                            color: colours.coauthor
+                        });
+                    }
+                    if(typeof graph.nodes(coauthor2) === 'undefined') {
+                        graph.addNode({
+                            id: coauthor2,
+                            x: Math.random(),
+                            y: Math.random(),
+                            color: colours.coauthor
+                        });
+                    }
+                    if((typeof graph.edges(coauthor1+coauthor2) === 'undefined') && typeof graph.edges(coauthor2+coauthor1) === 'undefined') {
+                        graph.addEdge({
+                            id: coauthor1 + coauthor2,
+                            source: coauthor1,
+                            target: coauthor2,
+                            //color: colours.coauthorEdge,
+                            size: parseInt(row.weight.value),
+                            type: edgeType,
+                            priority: 1
+                        });
+                    }
+                }
+            }
+            getCoAuthors();
+        }
+
+        var directQuery = prefixes.RDF + prefixes.RUCD +
+            "SELECT ?coauthor ?coauthor2  (COUNT (?paper) as ?weight) " +
             "WHERE { " +
             "<" + uri + "> rucd:cooperatesWith ?coauthor . " +
             "<" + uri + "> rucd:publication ?paper . " +
@@ -81,8 +137,71 @@ function displayAuthor(uri) {
             "} GROUP BY ?coauthor ?coauthor2 ";
         query(directQuery, addDirectCoAuthorLinks);
     }
+
+    /**
+     * Gets the coauthors of the author in focus and adds them to the graph
+     * This is done by sending a query to the sparql endpoint and calling addCoAuthors once it has completed
+     * Once the whole process has completed, finish() is called.
+     */
     function getCoAuthors() {
-        var queryString = prefixes.RDF + prefixes.RUCD + prefixes.RDFS + "SELECT ?coauthor ?firstName ?lastName ?department (COUNT (?paper) AS ?weight) " +
+        function addCoAuthors(data) {
+            var bindings = data.results.bindings;
+            if (bindings.length > 1 || bindings[0].weight.value != 0) {
+                for (var rowId in bindings) {
+                    var row = bindings[rowId];
+                    var coauthor = row.coauthor.value;
+                    var size = parseInt(row.weight.value);
+                    var colour = colours.coauthor;
+                    var department = "No Department";
+                    if ("department" in row) {
+                        department = row["department"].value;
+                    }
+                    if(department in colours.departments) {
+                        colour = colours.departments[department];
+                    } else {
+                        var rgb = getRandomColour();
+                        colour = 'rgb(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ')'
+                        //colours.departments[department] = colour;
+                        colours.departments.put(department, colour);
+                    }
+                    colours.authors[coauthor] = colour;
+                    if (size > authorSize) {
+                        var authorNode = graph.nodes(uri);
+                        //authorSize = size + (size * 0.2);
+                        authorSize = size;
+                        authorNode["size"] = authorSize;
+                        mySigma.refresh();
+                    }
+                    var coauth = graph.nodes(coauthor);
+                    if (typeof coauth === 'undefined') {
+                        graph.addNode({
+                            id: coauthor,
+                            x: Math.random(),
+                            y: Math.random(),
+                            size: size,
+                            color: colour,
+                            label: row.lastName.value + ", " + row.firstName.value
+                        });
+                    } else {
+                        coauth.size = size;
+                        coauth.label = row.lastName.value + ", " + row.firstName.value;
+                        coauth.color = colour
+                    }
+                    graph.addEdge({
+                        id: uri + coauthor,
+                        source: uri,
+                        target: coauthor,
+                        size: size,
+                        type: edgeType,
+                        priority: 2
+                    });
+                }
+            }
+            finish(mySigma);
+        }
+
+        var queryString = prefixes.RDF + prefixes.RUCD + prefixes.RDFS +
+            "SELECT ?coauthor ?firstName ?lastName ?department (COUNT (?paper) AS ?weight) " +
             "WHERE { " +
             "<" + uri + "> rucd:cooperatesWith ?coauthor . " +
             "<" + uri + "> rucd:publication ?paper . " +
@@ -95,99 +214,11 @@ function displayAuthor(uri) {
             "GROUP BY ?coauthor ?firstName ?lastName ?department ";
         query(queryString, addCoAuthors);
     }
-    function addDirectCoAuthorLinks(data) {
-        var bindings = data.results.bindings;
-        if (bindings.length > 1 || bindings[0].weight.value != 0) {
-            for(var rowId in bindings) {
-                var row = bindings[rowId];
-                var coauthor1 = row.coauthor.value;
-                var coauthor2 = row.coauthor2.value;
-                if(typeof graph.nodes(coauthor1) === 'undefined') {
-                    graph.addNode({
-                        id: coauthor1,
-                        x: Math.random(),
-                        y: Math.random(),
-                        color: colours.coauthor
-                    });
-                }
-                if(typeof graph.nodes(coauthor2) === 'undefined') {
-                    graph.addNode({
-                        id: coauthor2,
-                        x: Math.random(),
-                        y: Math.random(),
-                        color: colours.coauthor
-                    });
-                }
-                if((typeof graph.edges(coauthor1+coauthor2) === 'undefined') && typeof graph.edges(coauthor2+coauthor1) === 'undefined') {
-                    graph.addEdge({
-                        id: coauthor1 + coauthor2,
-                        source: coauthor1,
-                        target: coauthor2,
-                        //color: colours.coauthorEdge,
-                        size: parseInt(row.weight.value),
-                        type: edgeType,
-                        priority: 1
-                    });
-                }
-            }
-        }
-        getCoAuthors();
-    }
-    function addCoAuthors(data) {
-        var bindings = data.results.bindings;
-        if (bindings.length > 1 || bindings[0].weight.value != 0) {
-            for (var rowId in bindings) {
-                var row = bindings[rowId];
-                var coauthor = row.coauthor.value;
-                var size = parseInt(row.weight.value);
-                var colour = colours.coauthor;
-                var department = "No Department";
-                if ("department" in row) {
-                    department = row["department"].value;
-                }
-                if(department in colours.departments) {
-                    colour = colours.departments[department];
-                } else {
-                    var rgb = getRandomColour();
-                    colour = 'rgb(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ')'
-                    //colours.departments[department] = colour;
-                    colours.departments.put(department, colour);
-                }
-                colours.authors[coauthor] = colour;
-                if (size > authorSize) {
-                    var authorNode = graph.nodes(uri);
-                    //authorSize = size + (size * 0.2);
-                    authorSize = size;
-                    authorNode["size"] = authorSize;
-                    mySigma.refresh();
-                }
-                var coauth = graph.nodes(coauthor);
-                if (typeof coauth === 'undefined') {
-                    graph.addNode({
-                        id: coauthor,
-                        x: Math.random(),
-                        y: Math.random(),
-                        size: size,
-                        color: colour,
-                        label: row.lastName.value + ", " + row.firstName.value
-                    });
-                } else {
-                    coauth.size = size;
-                    coauth.label = row.lastName.value + ", " + row.firstName.value;
-                    coauth.color = colour
-                }
-                graph.addEdge({
-                    id: uri + coauthor,
-                    source: uri,
-                    target: coauthor,
-                    size: size,
-                    type: edgeType,
-                    priority: 2
-                });
-            }
-        }
-        finish(mySigma);
-    }
+
+    /**
+     * Displays the papers authored by the author in focus in the domElements.paperList element
+     * @param data the result of the SPARQL query to retreive the papers
+     */
     function displayPapers(data) {
         var container = $('#'+domElements.paperList);
         container.html('');
@@ -206,7 +237,15 @@ function displayAuthor(uri) {
             list.append(item);
         }
     }
+
     var previouspaper = null;
+
+    /**
+     * Handling the action of clicking a paper in the domElements.paperList element.
+     * Greys out the nodes and edges connected to any author who did not work on paperId
+     * @param paperId the id of the paper selected
+     * @param sigmaInst the instance of Sigma to perform the operation on
+     */
     function toggleNodesForPaper(paperId, sigmaInst) {
         if(paperId == previouspaper) {
             previouspaper = null;
