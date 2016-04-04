@@ -8,6 +8,7 @@ endpoint = 'http://localhost:3030/rucd2/query';
 var colours={};
 colours.author = '#093';
 colours.authors = {};
+colours.departments = {};
 colours.coauthor = '#f00';
 colours.paper = '#00f';
 colours.coauthorEdge = 'rgba(255,0,0,0.4)';
@@ -15,6 +16,12 @@ colours.opaque = "#ccc";
 var pathQueryLen = 6;
 var layoutRuntimeScale = 30;
 var edgeType = 'curve';
+
+colours.departments.put = function(deptName, colour) {
+    colours.departments[deptName] = colour;
+    console.log(colour);
+    $('#key-content').append('<tr><td style="background-color: ' + colour + '"></td><td>' + deptName + "</td></tr>");
+};
 
 sigma.classes.graph.addMethod('getIncident', function(nodeId) {
     return this.allNeighborsIndex[nodeId];

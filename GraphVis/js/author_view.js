@@ -2,14 +2,8 @@
  * Created by Diarmuid on 13/03/2016.
  */
 
-colours.departments = {};
 colours.edges = {};
 
-colours.departments.put = function(deptName, colour) {
-    colours.departments[deptName] = colour;
-    console.log(colour);
-    $('#key-content').append('<tr><td style="background-color: ' + colour + '"></td><td>' + deptName + "</td></tr>");
-};
 
 function displayAuthor(uri) {
     hideSearch(true);

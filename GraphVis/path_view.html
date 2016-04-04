@@ -6,11 +6,11 @@
     <link rel="stylesheet" type="text/css" href="style.css">
     <script src="sigma_js/sigma.min.js"></script>
     <script src="sparql/sparql.js"></script>
-    <script src="sparql/researchVis.js"></script>
-    <script src="jquery/jquery.js"></script>
+    <script src="js/researchVis.js"></script>
     <script src="js/path_view.js"></script>
     <script src="sigma_js/plugins/sigma.layout.fruchterman.js"></script>
     <script src="sigma_js/plugins/sigma.plugins.animate.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.2/jquery.min.js"></script>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
 </head>
@@ -31,7 +31,6 @@
                 <li><a href="index.html">Home</a></li>
                 <li><a href="author_view.html">Author View</a></li>
                 <li class="active"><a href="path_view.html">Path View</a></li>
-                <!--<li><a href="bipartite_view.html">Author - Paper View</a></li>-->
             </ul>
         </div><!--/.nav-collapse -->
     </div><!--/.container-fluid -->
@@ -71,7 +70,6 @@
             <div class="col-md-6" id="searchResults2"></div>
         </div>
     </div>
-    <div class="row">
         <div class="col-md-12">
             <button id="hideSearch" type="button" class="btn btn-default btn-block" onclick="hideSearch()">
                 <span class="glyphicon glyphicon-chevron-up"></span>Hide Search
@@ -79,7 +77,15 @@
         </div>
     </div>
     <div class="row">
-        <div class="col-md-12" id="graph"></div>
+        <div class="col-md-2" id="key">
+            <div class="table-condensed">
+                 <table class="table">
+                     <tbody id="key-content">
+                     </tbody>
+                 </table>
+            </div>
+        </div>
+        <div class="col-md-10" id="graph"></div>
     </div>
     <div class="navbar navbar-default ">
         <div class="container">
